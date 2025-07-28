@@ -71,7 +71,7 @@ class DatabaseManager:
             st.info("📂 Downloading 2024 data from Dropbox...")
             
             # Download 2024 data
-            ncaa_url = "https://www.dropbox.com/scl/fi/54o93jhavlk1dlictfhup/statcast_2024.parquet?rlkey=4kud2iumjqb96sh4lb3girjdw&st=wg32kbiv&dl=1"
+            ncaa_url = "https://www.dropbox.com/scl/fi/54o93jhavlk1dlictfhup/statcast_2024.parquet?rlkey=4kud2iumjqb96sh4lb3girjdw&st=2rap3c62&dl=1"
             response = requests.get(ncaa_url, timeout=300)
             response.raise_for_status()
             progress_bar.progress(30)
@@ -83,7 +83,7 @@ class DatabaseManager:
             # Download 2025 data
             st.info("📂 Downloading 2025 MLB data from Dropbox...")
             try:
-                ccbl_url = "https://www.dropbox.com/scl/fi/guwqimo1k39ivraj5widj/statcast_2025.parquet?rlkey=0afxm2kgtelcw1egs0owkumjx&st=dizalcyy&dl=1"
+                ccbl_url = "https://www.dropbox.com/scl/fi/guwqimo1k39ivraj5widj/statcast_2025.parquet?rlkey=0afxm2kgtelcw1egs0owkumjx&st=g2vtvv2q&dl=1"
                 
                 ccbl_response = requests.get(ccbl_url, timeout=180)
                 ccbl_response.raise_for_status()
