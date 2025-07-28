@@ -155,7 +155,7 @@ class DatabaseManager:
         query = "SELECT pitcher FROM pitcher_summary ORDER BY pitcher"
         df = pd.read_sql_query(query, conn)
         conn.close()
-        return df['pitcher'].tolist()
+        return df['player_name'].tolist()
     
     def get_batters(self):
         """Get list of batters"""
