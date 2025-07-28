@@ -119,13 +119,13 @@ class DatabaseManager:
                 SELECT 
                     Pitcher,
                     COUNT(*) as total_pitches,
-                    AVG(RelSpeed) as avg_speed,
+                    AVG(release_speed) as avg_speed,
                     AVG(InducedVertBreak) as avg_ivb,
                     AVG(HorzBreak) as avg_hb,
-                    AVG(SpinRate) as avg_spin
+                    AVG(release_spin_rate) as avg_spin
                 FROM pitches 
-                WHERE RelSpeed IS NOT NULL AND InducedVertBreak IS NOT NULL 
-                  AND HorzBreak IS NOT NULL AND SpinRate IS NOT NULL
+                WHERE release_speed IS NOT NULL AND InducedVertBreak IS NOT NULL 
+                  AND HorzBreak IS NOT NULL AND release_spin_rate IS NOT NULL
                 GROUP BY Pitcher
                 HAVING COUNT(*) >= 10
             """)
@@ -175,10 +175,10 @@ class DatabaseManager:
         query = f"""
             SELECT * FROM pitches 
             WHERE (Pitcher = ? OR Batter IN ({placeholders}))
-              AND RelSpeed IS NOT NULL 
+              AND release_speed IS NOT NULL 
               AND InducedVertBreak IS NOT NULL 
               AND HorzBreak IS NOT NULL 
-              AND SpinRate IS NOT NULL
+              AND release_spin_rate IS NOT NULL
               AND Pitcher IS NOT NULL 
               AND Batter IS NOT NULL
         """
@@ -226,7 +226,7 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
     # === STEP 2: Clean Numeric Columns (EXACT SAME as MAC_module) ===
     with st.spinner("🧹 Cleaning numeric columns..."):
         numeric_columns = [
-            'RelSpeed', 'InducedVertBreak', 'HorzBreak', 'SpinRate', 'RelHeight', 'RelSide',
+            'release_speed', 'InducedVertBreak', 'HorzBreak', 'release_spin_rate', 'release_pos_z', 'release_pos_x',
             'run_value', 'RunsScored', 'OutsOnPlay', 'ExitSpeed', 'Angle', 'PlateLocHeight', 'PlateLocSide'
         ]
         
@@ -235,7 +235,7 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
                 df[col] = clean_numeric_column(df[col])
         
         # Check for required columns (EXACT SAME)
-        required_cols = ['RelSpeed', 'InducedVertBreak', 'HorzBreak', 'SpinRate', 'RelHeight', 'RelSide', 'TaggedPitchType']
+        required_cols = ['release_speed', 'InducedVertBreak', 'HorzBreak', 'release_spin_rate', 'release_pos_z', 'release_pos_x', 'pitch_name']
         missing_cols = [col for col in required_cols if col not in df.columns]
         if missing_cols:
             st.error(f"Missing required columns: {missing_cols}")
@@ -270,8 +270,8 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
     st.success("✅ wOBA values assigned")
     
     # === STEP 5: Feature sets (EXACT SAME) ===
-    scanning_features = ['RelSpeed', 'InducedVertBreak', 'HorzBreak', 'SpinRate', 'RelHeight', 'RelSide']
-    clustering_features = ['RelSpeed', 'InducedVertBreak', 'HorzBreak', 'SpinRate']
+    scanning_features = ['release_speed', 'InducedVertBreak', 'HorzBreak', 'release_spin_rate', 'release_pos_z', 'release_pos_x']
+    clustering_features = ['release_speed', 'InducedVertBreak', 'HorzBreak', 'release_spin_rate']
     
     df = df.dropna(subset=scanning_features + ["Pitcher", "Batter"])
     pitcher_pitches = pitcher_pitches.dropna(subset=scanning_features + ["Pitcher", "Batter"])
@@ -305,10 +305,11 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
     
     st.success(f"✅ Optimal clusters found: {optimal_k} clusters")
     
-    # === STEP 7: Assign PitchGroup using TaggedPitchType majority (EXACT SAME) ===
+    # === STEP 7: Assign PitchGroup using pitch_name majority (EXACT SAME) ===
     with st.spinner("🏷️ Assigning pitch groups..."):
         autopitchtype_to_group = {
             'Four-Seam': 'Fastball',
+            '4-Seam Fastball': 'Fastball',
             'Fastball': 'Fastball',
             'FourSeamFastBall': 'Fastball',
             'TwoSeamFastBall': 'Fastball',
@@ -316,20 +317,28 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
             'Slider': 'Breaking',
             'Cutter': 'Breaking',
             'Curveball': 'Breaking',
+            'Slurve': 'Breaking',
+            'Knuckle Curve': 'Breaking',
             'Sweeper': 'Breaking',
-            'Changeup': 'Offspeed',
+            'Slow Curve': 'Breaking',
+            'Eephus': 'Breaking',
             'Splitter': 'Offspeed',
-            'ChangeUp': 'Offspeed'
+            'Split-Finger': 'Offspeed',
+            'Forkball': 'Offspeed',
+            'ChangeUp': 'Offspeed',
+            'Changeup': 'Offspeed',
+            'Knuckleball': 'Offspeed',
+            'Screwball': 'Offspeed'
         }
         
-        # Handle missing TaggedPitchType if any (EXACT SAME)
-        pitcher_pitches = pitcher_pitches.dropna(subset=["TaggedPitchType"])
+        # Handle missing pitch_name if any (EXACT SAME)
+        pitcher_pitches = pitcher_pitches.dropna(subset=["pitch_name"])
         
-        # Compute most common TaggedPitchType for each cluster (EXACT SAME)
+        # Compute most common pitch_name for each cluster (EXACT SAME)
         cluster_to_type = {}
         for cluster in pitcher_pitches['PitchCluster'].unique():
             cluster_data = pitcher_pitches[pitcher_pitches['PitchCluster'] == cluster]
-            type_counts = cluster_data['TaggedPitchType'].value_counts()
+            type_counts = cluster_data['pitch_name'].value_counts()
             
             if type_counts.empty:
                 cluster_to_type[cluster] = 'Unknown'
@@ -536,7 +545,7 @@ def run_silent_mac_analysis(pitcher_name, target_hitters, db_manager):
     
     # === STEP 2: Clean Numeric Columns ===
     numeric_columns = [
-        'RelSpeed', 'InducedVertBreak', 'HorzBreak', 'SpinRate', 'RelHeight', 'RelSide',
+        'release_speed', 'InducedVertBreak', 'HorzBreak', 'release_spin_rate', 'release_pos_z', 'release_pos_x',
         'run_value', 'RunsScored', 'OutsOnPlay', 'ExitSpeed', 'Angle', 'PlateLocHeight', 'PlateLocSide'
     ]
     
@@ -545,7 +554,7 @@ def run_silent_mac_analysis(pitcher_name, target_hitters, db_manager):
             df[col] = clean_numeric_column(df[col])
     
     # Check for required columns
-    required_cols = ['RelSpeed', 'InducedVertBreak', 'HorzBreak', 'SpinRate', 'RelHeight', 'RelSide', 'TaggedPitchType']
+    required_cols = ['release_speed', 'InducedVertBreak', 'HorzBreak', 'release_spin_rate', 'release_pos_z', 'release_pos_x', 'pitch_name']
     missing_cols = [col for col in required_cols if col not in df.columns]
     if missing_cols:
         return None, None, None
@@ -566,8 +575,8 @@ def run_silent_mac_analysis(pitcher_name, target_hitters, db_manager):
         df['wOBA_result'] = clean_numeric_column(df['wOBA_result'])
     
     # === STEP 5: Feature sets ===
-    scanning_features = ['RelSpeed', 'InducedVertBreak', 'HorzBreak', 'SpinRate', 'RelHeight', 'RelSide']
-    clustering_features = ['RelSpeed', 'InducedVertBreak', 'HorzBreak', 'SpinRate']
+    scanning_features = ['release_speed', 'InducedVertBreak', 'HorzBreak', 'release_spin_rate', 'release_pos_z', 'release_pos_x']
+    clustering_features = ['release_speed', 'InducedVertBreak', 'HorzBreak', 'release_spin_rate']
     
     df = df.dropna(subset=scanning_features + ["Pitcher", "Batter"])
     pitcher_pitches = pitcher_pitches.dropna(subset=scanning_features + ["Pitcher", "Batter"])
@@ -594,7 +603,7 @@ def run_silent_mac_analysis(pitcher_name, target_hitters, db_manager):
     best_gmm = GaussianMixture(n_components=optimal_k, random_state=42)
     pitcher_pitches['PitchCluster'] = best_gmm.fit_predict(X_cluster)
     
-    # === STEP 7: Assign PitchGroup using TaggedPitchType majority ===
+    # === STEP 7: Assign PitchGroup using pitch_name majority ===
     autopitchtype_to_group = {
         'Four-Seam': 'Fastball', 'Fastball': 'Fastball', 'FourSeamFastBall': 'Fastball',
         'TwoSeamFastBall': 'Fastball', 'Sinker': 'Fastball', 'Slider': 'Breaking',
@@ -602,12 +611,12 @@ def run_silent_mac_analysis(pitcher_name, target_hitters, db_manager):
         'Changeup': 'Offspeed', 'Splitter': 'Offspeed', 'ChangeUp': 'Offspeed'
     }
     
-    pitcher_pitches = pitcher_pitches.dropna(subset=["TaggedPitchType"])
+    pitcher_pitches = pitcher_pitches.dropna(subset=["pitch_name"])
     
     cluster_to_type = {}
     for cluster in pitcher_pitches['PitchCluster'].unique():
         cluster_data = pitcher_pitches[pitcher_pitches['PitchCluster'] == cluster]
-        type_counts = cluster_data['TaggedPitchType'].value_counts()
+        type_counts = cluster_data['pitch_name'].value_counts()
         
         if type_counts.empty:
             cluster_to_type[cluster] = 'Unknown'
@@ -1041,12 +1050,12 @@ def create_movement_chart(movement_df):
                 mode="markers",
                 marker=dict(color=color, size=10, opacity=0.7),
                 name=pitch_type,
-                customdata=pitch_df[["Batter", "RelSpeed", "SpinRate"]],
+                customdata=pitch_df[["Batter", "release_speed", "release_spin_rate"]],
                 hovertemplate="<b>%{customdata[0]}</b><br>"
                               "HB: %{x}<br>"
                               "IVB: %{y}<br>"
-                              "RelSpeed: %{customdata[1]} mph<br>"
-                              "SpinRate: %{customdata[2]}<extra></extra>"
+                              "release_speed: %{customdata[1]} mph<br>"
+                              "release_spin_rate: %{customdata[2]}<extra></extra>"
             ))
     
     fig.update_layout(
@@ -1237,7 +1246,7 @@ def main():
         1. **Load & Clean Data** - Clean numeric columns
         2. **wOBA Assignment** - Apply league weights
         3. **Clustering** - GMM + BIC + KneeLocator
-        4. **Pitch Grouping** - TaggedPitchType majority
+        4. **Pitch Grouping** - pitch_name majority
         5. **Similarity** - Euclidean distance calculation
         6. **Matchup Analysis** - Usage-weighted statistics
         """)
