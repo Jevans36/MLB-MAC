@@ -41,12 +41,12 @@ swing_calls = ["StrikeSwinging", "FoulBallFieldable", "FoulBallNotFieldable", "I
 
 # === EXACT SAME wOBA weights as MAC_module ===
 woba_weights = {
-    'Walk': 0.673,
-    'HitByPitch': 0.718,
-    'Single': 0.949,
-    'Double': 1.483,
-    'Triple': 1.963,
-    'HomeRun': 2.571
+    'Walk': 0.692,
+    'HitByPitch': 0.723,
+    'Single': 0.885,
+    'Double': 1.257,
+    'Triple': 1.593,
+    'HomeRun': 2.053
 }
 
 def clean_numeric_column(series):
