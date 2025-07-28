@@ -120,11 +120,11 @@ class DatabaseManager:
                     pitcher,
                     COUNT(*) as total_pitches,
                     AVG(release_speed) as avg_speed,
-                    AVG(InducedVertBreak) as avg_ivb,
+                    AVG(IndVertBreak) as avg_ivb,
                     AVG(HorzBreak) as avg_hb,
                     AVG(release_spin_rate) as avg_spin
                 FROM pitches 
-                WHERE release_speed IS NOT NULL AND InducedVertBreak IS NOT NULL 
+                WHERE release_speed IS NOT NULL AND IndVertBreak IS NOT NULL 
                   AND HorzBreak IS NOT NULL AND release_spin_rate IS NOT NULL
                 GROUP BY pitcher
                 HAVING COUNT(*) >= 10
@@ -176,7 +176,7 @@ class DatabaseManager:
             SELECT * FROM pitches 
             WHERE (pitcher = ? OR batter IN ({placeholders}))
               AND release_speed IS NOT NULL 
-              AND InducedVertBreak IS NOT NULL 
+              AND IndVertBreak IS NOT NULL 
               AND HorzBreak IS NOT NULL 
               AND release_spin_rate IS NOT NULL
               AND pitcher IS NOT NULL 
@@ -226,8 +226,8 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
     # === STEP 2: Clean Numeric Columns (EXACT SAME as MAC_module) ===
     with st.spinner("🧹 Cleaning numeric columns..."):
         numeric_columns = [
-            'release_speed', 'InducedVertBreak', 'HorzBreak', 'release_spin_rate', 'release_pos_z', 'release_pos_x',
-            'run_value', 'RunsScored', 'OutsOnPlay', 'launch_speed', 'Angle', 'plate_z', 'plate_x'
+            'release_speed', 'IndVertBreak', 'HorzBreak', 'release_spin_rate', 'release_pos_z', 'release_pos_x',
+            'delta_run_exp', 'RunsScored', 'OutsOnPlay', 'launch_speed', 'Angle', 'plate_z', 'plate_x'
         ]
         
         for col in numeric_columns:
@@ -235,7 +235,7 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
                 df[col] = clean_numeric_column(df[col])
         
         # Check for required columns (EXACT SAME)
-        required_cols = ['release_speed', 'InducedVertBreak', 'HorzBreak', 'release_spin_rate', 'release_pos_z', 'release_pos_x', 'pitch_name']
+        required_cols = ['release_speed', 'IndVertBreak', 'HorzBreak', 'release_spin_rate', 'release_pos_z', 'release_pos_x', 'pitch_name']
         missing_cols = [col for col in required_cols if col not in df.columns]
         if missing_cols:
             st.error(f"Missing required columns: {missing_cols}")
@@ -270,8 +270,8 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
     st.success("✅ wOBA values assigned")
     
     # === STEP 5: Feature sets (EXACT SAME) ===
-    scanning_features = ['release_speed', 'InducedVertBreak', 'HorzBreak', 'release_spin_rate', 'release_pos_z', 'release_pos_x']
-    clustering_features = ['release_speed', 'InducedVertBreak', 'HorzBreak', 'release_spin_rate']
+    scanning_features = ['release_speed', 'IndVertBreak', 'HorzBreak', 'release_spin_rate', 'release_pos_z', 'release_pos_x']
+    clustering_features = ['release_speed', 'IndVertBreak', 'HorzBreak', 'release_spin_rate']
     
     df = df.dropna(subset=scanning_features + ["pitcher", "batter"])
     pitcher_pitches = pitcher_pitches.dropna(subset=scanning_features + ["pitcher", "batter"])
@@ -427,7 +427,7 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
                 total_pitches = len(group_pitches)
                 total_swings = group_pitches["Swung"].sum()
                 total_whiffs = group_pitches["Whiff"].sum()
-                total_run_value = group_pitches["run_value"].sum() if 'run_value' in group_pitches.columns else 0
+                total_run_value = group_pitches["delta_run_exp"].sum() if 'delta_run_exp' in group_pitches.columns else 0
                 
                 # Clean exit speed and angle columns (EXACT SAME)
                 group_pitches['launch_speed'] = clean_numeric_column(group_pitches['launch_speed'])
@@ -545,8 +545,8 @@ def run_silent_mac_analysis(pitcher_name, target_hitters, db_manager):
     
     # === STEP 2: Clean Numeric Columns ===
     numeric_columns = [
-        'release_speed', 'InducedVertBreak', 'HorzBreak', 'release_spin_rate', 'release_pos_z', 'release_pos_x',
-        'run_value', 'launch_speed', 'launch_angle', 'plate_z', 'plate_x'
+        'release_speed', 'IndVertBreak', 'HorzBreak', 'release_spin_rate', 'release_pos_z', 'release_pos_x',
+        'delta_run_exp', 'launch_speed', 'launch_angle', 'plate_z', 'plate_x'
     ]
     
     for col in numeric_columns:
@@ -554,7 +554,7 @@ def run_silent_mac_analysis(pitcher_name, target_hitters, db_manager):
             df[col] = clean_numeric_column(df[col])
     
     # Check for required columns
-    required_cols = ['release_speed', 'InducedVertBreak', 'HorzBreak', 'release_spin_rate', 'release_pos_z', 'release_pos_x', 'pitch_name']
+    required_cols = ['release_speed', 'IndVertBreak', 'HorzBreak', 'release_spin_rate', 'release_pos_z', 'release_pos_x', 'pitch_name']
     missing_cols = [col for col in required_cols if col not in df.columns]
     if missing_cols:
         return None, None, None
@@ -575,8 +575,8 @@ def run_silent_mac_analysis(pitcher_name, target_hitters, db_manager):
         df['wOBA_result'] = clean_numeric_column(df['wOBA_result'])
     
     # === STEP 5: Feature sets ===
-    scanning_features = ['release_speed', 'InducedVertBreak', 'HorzBreak', 'release_spin_rate', 'release_pos_z', 'release_pos_x']
-    clustering_features = ['release_speed', 'InducedVertBreak', 'HorzBreak', 'release_spin_rate']
+    scanning_features = ['release_speed', 'IndVertBreak', 'HorzBreak', 'release_spin_rate', 'release_pos_z', 'release_pos_x']
+    clustering_features = ['release_speed', 'IndVertBreak', 'HorzBreak', 'release_spin_rate']
     
     df = df.dropna(subset=scanning_features + ["Pitcher", "batter"])
     pitcher_pitches = pitcher_pitches.dropna(subset=scanning_features + ["Pitcher", "batter"])
@@ -691,7 +691,7 @@ def run_silent_mac_analysis(pitcher_name, target_hitters, db_manager):
             total_pitches = len(group_pitches)
             total_swings = group_pitches["Swung"].sum()
             total_whiffs = group_pitches["Whiff"].sum()
-            total_run_value = group_pitches["run_value"].sum() if 'run_value' in group_pitches.columns else 0
+            total_run_value = group_pitches["delta_run_exp"].sum() if 'delta_run_exp' in group_pitches.columns else 0
             
             # Clean exit speed and angle columns
             group_pitches['launch_speed'] = clean_numeric_column(group_pitches['launch_speed'])
@@ -1036,7 +1036,7 @@ def create_movement_chart(movement_df):
     """Create pitch movement chart matching Dash app style"""
     movement_df_filtered = movement_df[
         (movement_df["HorzBreak"].between(-50, 50)) & 
-        (movement_df["InducedVertBreak"].between(-50, 50))
+        (movement_df["IndVertBreak"].between(-50, 50))
     ]
     
     fig = go.Figure()
@@ -1046,7 +1046,7 @@ def create_movement_chart(movement_df):
         if not pitch_df.empty:
             fig.add_trace(go.Scatter(
                 x=pitch_df["HorzBreak"],
-                y=pitch_df["InducedVertBreak"],
+                y=pitch_df["IndVertBreak"],
                 mode="markers",
                 marker=dict(color=color, size=10, opacity=0.7),
                 name=pitch_type,
@@ -1059,7 +1059,7 @@ def create_movement_chart(movement_df):
             ))
     
     fig.update_layout(
-        title="Pitch Movement (HorzBreak vs. InducedVertBreak)",
+        title="Pitch Movement (HorzBreak vs. IndVertBreak)",
         xaxis=dict(title="Horizontal Break", range=[-30, 30]),
         yaxis=dict(title="Induced Vertical Break", range=[-30, 30], scaleanchor="x", scaleratio=1),
         template="simple_white",
