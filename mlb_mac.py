@@ -1048,12 +1048,12 @@ def create_movement_chart(movement_df):
                 mode="markers",
                 marker=dict(color=color, size=10, opacity=0.7),
                 name=pitch_type,
-                customdata=pitch_df[["batter_name", "release_speed", "release_spin_rate"]],
-                hovertemplate="<b>%{customdata[0]}</b><br>"
+                customdata=pitch_df[["batter_name", "player_name", "release_speed", "release_spin_rate"]],
+                hovertemplate="<b>%{customdata[0]} vs %{customdata[1]}</b><br>"
                               "HB: %{x}<br>"
                               "IVB: %{y}<br>"
-                              "release_speed: %{customdata[1]} mph<br>"
-                              "release_spin_rate: %{customdata[2]}<extra></extra>"
+                              "Velocity: %{customdata[2]} mph<br>"
+                              "Spin Rate: %{customdata[3]} rpm<extra></extra>"
             ))
     
     fig.update_layout(
