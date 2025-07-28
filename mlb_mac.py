@@ -225,7 +225,7 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
     with st.spinner("🧹 Cleaning numeric columns..."):
         numeric_columns = [
             'release_speed', 'IndVertBreak', 'HorzBreak', 'release_spin_rate', 'release_pos_z', 'release_pos_x',
-            'delta_run_exp', 'RunsScored', 'OutsOnPlay', 'launch_speed', 'Angle', 'plate_z', 'plate_x'
+            'delta_run_exp', 'RunsScored', 'OutsOnPlay', 'launch_speed', 'launch_angle', 'plate_z', 'plate_x'
         ]
         
         for col in numeric_columns:
@@ -435,7 +435,7 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
                 launch_angle = group_pitches["launch_angle"].mean()
                 
                 balls_in_play = group_pitches[group_pitches["Ishit_into_play"]]
-                num_ground_balls = (balls_in_play["Angle"] < 10).sum()
+                num_ground_balls = (balls_in_play["launch_angle"] < 10).sum()
                 gb_percent = round(100 * num_ground_balls / len(balls_in_play), 1) if len(balls_in_play) > 0 else np.nan
                 num_hard_hits = (balls_in_play["launch_speed"] >= 95).sum()
                 hh_percent = round(100 * num_hard_hits / len(balls_in_play), 1) if len(balls_in_play) > 0 else np.nan
