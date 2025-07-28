@@ -42,7 +42,7 @@ swing_calls = ["swinging_strike", "foul", "foul", "hit_into_play"]
 # === EXACT SAME wOBA weights as MAC_module ===
 woba_weights = {
     'walk': 0.692,
-    'HitByPitch': 0.723,
+    'hit_by_pitch': 0.723,
     'single': 0.885,
     'double': 1.257,
     'triple': 1.593,
@@ -259,7 +259,7 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
         if 'wOBA_result' not in df.columns:
             df['wOBA_result'] = 0.0  # Initialize
             df.loc[df['events'] == 'walk', 'wOBA_result'] = woba_weights['walk']
-            df.loc[df['description'] == 'HitByPitch', 'wOBA_result'] = woba_weights['HitByPitch']
+            df.loc[df['description'] == 'hit_by_pitch', 'wOBA_result'] = woba_weights['hit_by_pitch']
             df.loc[df['events'] == 'single', 'wOBA_result'] = woba_weights['single']
             df.loc[df['events'] == 'double', 'wOBA_result'] = woba_weights['double']
             df.loc[df['events'] == 'triple', 'wOBA_result'] = woba_weights['triple']
@@ -431,10 +431,10 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
                 
                 # Clean exit speed and angle columns (EXACT SAME)
                 group_pitches['launch_speed'] = clean_numeric_column(group_pitches['launch_speed'])
-                group_pitches['Angle'] = clean_numeric_column(group_pitches['Angle'])
+                group_pitches['launch_angle'] = clean_numeric_column(group_pitches['launch_angle'])
                 
                 exit_velo = group_pitches["launch_speed"].mean()
-                launch_angle = group_pitches["Angle"].mean()
+                launch_angle = group_pitches["launch_angle"].mean()
                 
                 balls_in_play = group_pitches[group_pitches["Ishit_into_play"]]
                 num_ground_balls = (balls_in_play["Angle"] < 10).sum()
@@ -456,7 +456,7 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
                 out_mask = (
                     ((group_pitches["events"].isin(["strikeout", "walk"])) |
                     ((group_pitches["description"] == "hit_into_play") & (group_pitches["events"] == "Out"))) &
-                    (group_pitches["events"] != "Sacrifice")
+                    (group_pitches["events"] != "sac_bunt") & (group_pitches["events"] != "sac_fly")
                 )
                 outs = out_mask.sum()
                 
@@ -481,7 +481,7 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
                 # Compute wOBA for this group (EXACT SAME)
                 plate_ending = group_pitches[
                     (group_pitches["events"].isin(["strikeout", "walk"])) |
-                    (group_pitches["description"].isin(["hit_into_play", "HitByPitch"]))
+                    (group_pitches["description"].isin(["hit_into_play", "hit_by_pitch"]))
                 ]
                 
                 group_woba_numerator = plate_ending["wOBA_result"].sum()
@@ -566,7 +566,7 @@ def run_silent_mac_analysis(pitcher_name, target_hitters, db_manager):
     if 'wOBA_result' not in df.columns:
         df['wOBA_result'] = 0.0
         df.loc[df['events'] == 'walk', 'wOBA_result'] = woba_weights['walk']
-        df.loc[df['description'] == 'HitByPitch', 'wOBA_result'] = woba_weights['HitByPitch']
+        df.loc[df['description'] == 'hit_by_pitch', 'wOBA_result'] = woba_weights['hit_by_pitch']
         df.loc[df['events'] == 'single', 'wOBA_result'] = woba_weights['single']
         df.loc[df['events'] == 'double', 'wOBA_result'] = woba_weights['double']
         df.loc[df['events'] == 'triple', 'wOBA_result'] = woba_weights['triple']
@@ -745,7 +745,7 @@ def run_silent_mac_analysis(pitcher_name, target_hitters, db_manager):
             # Compute wOBA for this group
             plate_ending = group_pitches[
                 (group_pitches["events"].isin(["strikeout", "walk"])) |
-                (group_pitches["description"].isin(["hit_into_play", "HitByPitch"]))
+                (group_pitches["description"].isin(["hit_into_play", "hit_by_pitch"]))
             ]
             
             group_woba_numerator = plate_ending["wOBA_result"].sum()
