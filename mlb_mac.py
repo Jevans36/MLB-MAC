@@ -41,12 +41,12 @@ swing_calls = ["swinging_strike", "foul", "foul", "hit_into_play"]
 
 # === EXACT SAME wOBA weights as MAC_module ===
 woba_weights = {
-    'Walk': 0.692,
+    'walk': 0.692,
     'HitByPitch': 0.723,
-    'Single': 0.885,
-    'Double': 1.257,
-    'Triple': 1.593,
-    'HomeRun': 2.053
+    'single': 0.885,
+    'double': 1.257,
+    'triple': 1.593,
+    'home_run': 2.053
 }
 
 def clean_numeric_column(series):
@@ -109,15 +109,15 @@ class DatabaseManager:
             
             # Create indexes
             cursor = conn.cursor()
-            cursor.execute("CREATE INDEX idx_pitcher ON pitches(Pitcher)")
-            cursor.execute("CREATE INDEX idx_batter ON pitches(Batter)")
-            cursor.execute("CREATE INDEX idx_pitcher_batter ON pitches(Pitcher, Batter)")
+            cursor.execute("CREATE INDEX idx_pitcher ON pitches(pitcher)")
+            cursor.execute("CREATE INDEX idx_batter ON pitches(batter)")
+            cursor.execute("CREATE INDEX idx_pitcher_batter ON pitches(pitcher, batter)")
             
             # Create summary tables
             cursor.execute("""
                 CREATE TABLE pitcher_summary AS
                 SELECT 
-                    Pitcher,
+                    pitcher,
                     COUNT(*) as total_pitches,
                     AVG(release_speed) as avg_speed,
                     AVG(InducedVertBreak) as avg_ivb,
@@ -126,7 +126,7 @@ class DatabaseManager:
                 FROM pitches 
                 WHERE release_speed IS NOT NULL AND InducedVertBreak IS NOT NULL 
                   AND HorzBreak IS NOT NULL AND release_spin_rate IS NOT NULL
-                GROUP BY Pitcher
+                GROUP BY pitcher
                 HAVING COUNT(*) >= 10
             """)
             
@@ -152,18 +152,18 @@ class DatabaseManager:
     def get_pitchers(self):
         """Get list of pitchers with sufficient data"""
         conn = self.get_connection()
-        query = "SELECT Pitcher FROM pitcher_summary ORDER BY Pitcher"
+        query = "SELECT pitcher FROM pitcher_summary ORDER BY pitcher"
         df = pd.read_sql_query(query, conn)
         conn.close()
-        return df['Pitcher'].tolist()
+        return df['pitcher'].tolist()
     
     def get_batters(self):
         """Get list of batters"""
         conn = self.get_connection()
-        query = "SELECT DISTINCT Batter FROM pitches WHERE Batter IS NOT NULL ORDER BY Batter"
+        query = "SELECT DISTINCT batter FROM pitches WHERE batter IS NOT NULL ORDER BY batter"
         df = pd.read_sql_query(query, conn)
         conn.close()
-        return df['Batter'].tolist()
+        return df['batter'].tolist()
     
     def get_analysis_data(self, pitcher_name, target_hitters):
         """Get data for analysis - chunked approach for memory efficiency"""
@@ -174,13 +174,13 @@ class DatabaseManager:
         
         query = f"""
             SELECT * FROM pitches 
-            WHERE (Pitcher = ? OR Batter IN ({placeholders}))
+            WHERE (pitcher = ? OR batter IN ({placeholders}))
               AND release_speed IS NOT NULL 
               AND InducedVertBreak IS NOT NULL 
               AND HorzBreak IS NOT NULL 
               AND release_spin_rate IS NOT NULL
-              AND Pitcher IS NOT NULL 
-              AND Batter IS NOT NULL
+              AND pitcher IS NOT NULL 
+              AND batter IS NOT NULL
         """
         
         params = [pitcher_name] + target_hitters
@@ -216,7 +216,7 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
             return None, None, None
         
         # Filter for pitcher's data only for clustering (EXACT SAME)
-        pitcher_pitches = df[df["Pitcher"] == pitcher_name].copy()
+        pitcher_pitches = df[df["pitcher"] == pitcher_name].copy()
         if pitcher_pitches.empty:
             st.error(f"No pitches found for pitcher: {pitcher_name}")
             return None, None, None
@@ -227,7 +227,7 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
     with st.spinner("🧹 Cleaning numeric columns..."):
         numeric_columns = [
             'release_speed', 'InducedVertBreak', 'HorzBreak', 'release_spin_rate', 'release_pos_z', 'release_pos_x',
-            'run_value', 'RunsScored', 'OutsOnPlay', 'ExitSpeed', 'Angle', 'PlateLocHeight', 'PlateLocSide'
+            'run_value', 'RunsScored', 'OutsOnPlay', 'launch_speed', 'Angle', 'plate_z', 'plate_x'
         ]
         
         for col in numeric_columns:
@@ -258,12 +258,12 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
     with st.spinner("💯 Assigning wOBA values..."):
         if 'wOBA_result' not in df.columns:
             df['wOBA_result'] = 0.0  # Initialize
-            df.loc[df['KorBB'] == 'Walk', 'wOBA_result'] = woba_weights['Walk']
+            df.loc[df['events'] == 'walk', 'wOBA_result'] = woba_weights['walk']
             df.loc[df['description'] == 'HitByPitch', 'wOBA_result'] = woba_weights['HitByPitch']
-            df.loc[df['PlayResult'] == 'Single', 'wOBA_result'] = woba_weights['Single']
-            df.loc[df['PlayResult'] == 'Double', 'wOBA_result'] = woba_weights['Double']
-            df.loc[df['PlayResult'] == 'Triple', 'wOBA_result'] = woba_weights['Triple']
-            df.loc[df['PlayResult'] == 'HomeRun', 'wOBA_result'] = woba_weights['HomeRun']
+            df.loc[df['events'] == 'single', 'wOBA_result'] = woba_weights['single']
+            df.loc[df['events'] == 'double', 'wOBA_result'] = woba_weights['double']
+            df.loc[df['events'] == 'triple', 'wOBA_result'] = woba_weights['triple']
+            df.loc[df['events'] == 'home_run', 'wOBA_result'] = woba_weights['home_run']
         else:
             df['wOBA_result'] = clean_numeric_column(df['wOBA_result'])
     
@@ -273,8 +273,8 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
     scanning_features = ['release_speed', 'InducedVertBreak', 'HorzBreak', 'release_spin_rate', 'release_pos_z', 'release_pos_x']
     clustering_features = ['release_speed', 'InducedVertBreak', 'HorzBreak', 'release_spin_rate']
     
-    df = df.dropna(subset=scanning_features + ["Pitcher", "Batter"])
-    pitcher_pitches = pitcher_pitches.dropna(subset=scanning_features + ["Pitcher", "Batter"])
+    df = df.dropna(subset=scanning_features + ["pitcher", "batter"])
+    pitcher_pitches = pitcher_pitches.dropna(subset=scanning_features + ["pitcher", "batter"])
     
     st.info(f"🎯 Using clustering features: {clustering_features}")
     st.info(f"🔍 Using scanning features: {scanning_features}")
@@ -381,7 +381,7 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
         group_breakdown = []
         
         for hitter in target_hitters:
-            hitter_result = {"Batter": hitter}
+            hitter_result = {"batter": hitter}
             weighted_stats = []
             total_weight = 0
             
@@ -402,7 +402,7 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
             for group, usage in pitch_group_usage.items():
                 # NOW using full dataset for matchup analysis (EXACT SAME)
                 group_pitches = df[
-                    (df["Batter"] == hitter) &
+                    (df["batter"] == hitter) &
                     (df["PitchGroup"] == group) &
                     (df["MinDistToPitcher"] <= distance_threshold)
                 ].copy()
@@ -411,14 +411,14 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
                     continue
                 
                 # Clean plate location columns for zone calculation (EXACT SAME)
-                group_pitches['PlateLocHeight'] = clean_numeric_column(group_pitches['PlateLocHeight'])
-                group_pitches['PlateLocSide'] = clean_numeric_column(group_pitches['PlateLocSide'])
+                group_pitches['plate_z'] = clean_numeric_column(group_pitches['plate_z'])
+                group_pitches['plate_x'] = clean_numeric_column(group_pitches['plate_x'])
                 
                 group_pitches["InZone"] = (
-                    (group_pitches["PlateLocHeight"] >= strike_zone["bottom"]) &
-                    (group_pitches["PlateLocHeight"] <= strike_zone["top"]) &
-                    (group_pitches["PlateLocSide"] >= strike_zone["left"]) &
-                    (group_pitches["PlateLocSide"] <= strike_zone["right"])
+                    (group_pitches["plate_z"] >= strike_zone["bottom"]) &
+                    (group_pitches["plate_z"] <= strike_zone["top"]) &
+                    (group_pitches["plate_x"] >= strike_zone["left"]) &
+                    (group_pitches["plate_x"] <= strike_zone["right"])
                 )
                 group_pitches["Swung"] = group_pitches["description"].isin(swing_calls)
                 group_pitches["Whiff"] = group_pitches["description"] == "swinging_strike"
@@ -430,16 +430,16 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
                 total_run_value = group_pitches["run_value"].sum() if 'run_value' in group_pitches.columns else 0
                 
                 # Clean exit speed and angle columns (EXACT SAME)
-                group_pitches['ExitSpeed'] = clean_numeric_column(group_pitches['ExitSpeed'])
+                group_pitches['launch_speed'] = clean_numeric_column(group_pitches['launch_speed'])
                 group_pitches['Angle'] = clean_numeric_column(group_pitches['Angle'])
                 
-                exit_velo = group_pitches["ExitSpeed"].mean()
+                exit_velo = group_pitches["launch_speed"].mean()
                 launch_angle = group_pitches["Angle"].mean()
                 
                 balls_in_play = group_pitches[group_pitches["Ishit_into_play"]]
                 num_ground_balls = (balls_in_play["Angle"] < 10).sum()
                 gb_percent = round(100 * num_ground_balls / len(balls_in_play), 1) if len(balls_in_play) > 0 else np.nan
-                num_hard_hits = (balls_in_play["ExitSpeed"] >= 95).sum()
+                num_hard_hits = (balls_in_play["launch_speed"] >= 95).sum()
                 hh_percent = round(100 * num_hard_hits / len(balls_in_play), 1) if len(balls_in_play) > 0 else np.nan
                 
                 rv_per_100 = 100 * total_run_value / total_pitches if total_pitches > 0 else 0
@@ -449,14 +449,14 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
                 # Calculate AVG for this group (EXACT SAME)
                 hit_mask = (
                     (group_pitches["description"] == "hit_into_play") &
-                    (group_pitches["PlayResult"].isin(["Single", "Double", "Triple", "HomeRun"]))
+                    (group_pitches["events"].isin(["single", "double", "triple", "home_run"]))
                 )
                 hits = hit_mask.sum()
                 
                 out_mask = (
-                    ((group_pitches["KorBB"].isin(["Strikeout", "Walk"])) |
-                    ((group_pitches["description"] == "hit_into_play") & (group_pitches["PlayResult"] == "Out"))) &
-                    (group_pitches["PlayResult"] != "Sacrifice")
+                    ((group_pitches["events"].isin(["strikeout", "walk"])) |
+                    ((group_pitches["description"] == "hit_into_play") & (group_pitches["events"] == "Out"))) &
+                    (group_pitches["events"] != "Sacrifice")
                 )
                 outs = out_mask.sum()
                 
@@ -480,7 +480,7 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
                 
                 # Compute wOBA for this group (EXACT SAME)
                 plate_ending = group_pitches[
-                    (group_pitches["KorBB"].isin(["Strikeout", "Walk"])) |
+                    (group_pitches["events"].isin(["strikeout", "walk"])) |
                     (group_pitches["description"].isin(["hit_into_play", "HitByPitch"]))
                 ]
                 
@@ -493,7 +493,7 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
                 total_woba_den += group_woba_denominator
                 
                 group_breakdown.append({
-                    "Batter": hitter,
+                    "batter": hitter,
                     "PitchGroup": group,
                     "AVG": avg,
                     "RV/100": round(rv_per_100, 2),
@@ -546,7 +546,7 @@ def run_silent_mac_analysis(pitcher_name, target_hitters, db_manager):
     # === STEP 2: Clean Numeric Columns ===
     numeric_columns = [
         'release_speed', 'InducedVertBreak', 'HorzBreak', 'release_spin_rate', 'release_pos_z', 'release_pos_x',
-        'run_value', 'RunsScored', 'OutsOnPlay', 'ExitSpeed', 'Angle', 'PlateLocHeight', 'PlateLocSide'
+        'run_value', 'launch_speed', 'launch_angle', 'plate_z', 'plate_x'
     ]
     
     for col in numeric_columns:
@@ -565,12 +565,12 @@ def run_silent_mac_analysis(pitcher_name, target_hitters, db_manager):
     # === STEP 4: Assign wOBA result values ===
     if 'wOBA_result' not in df.columns:
         df['wOBA_result'] = 0.0
-        df.loc[df['KorBB'] == 'Walk', 'wOBA_result'] = woba_weights['Walk']
+        df.loc[df['events'] == 'walk', 'wOBA_result'] = woba_weights['walk']
         df.loc[df['description'] == 'HitByPitch', 'wOBA_result'] = woba_weights['HitByPitch']
-        df.loc[df['PlayResult'] == 'Single', 'wOBA_result'] = woba_weights['Single']
-        df.loc[df['PlayResult'] == 'Double', 'wOBA_result'] = woba_weights['Double']
-        df.loc[df['PlayResult'] == 'Triple', 'wOBA_result'] = woba_weights['Triple']
-        df.loc[df['PlayResult'] == 'HomeRun', 'wOBA_result'] = woba_weights['HomeRun']
+        df.loc[df['events'] == 'single', 'wOBA_result'] = woba_weights['single']
+        df.loc[df['events'] == 'double', 'wOBA_result'] = woba_weights['double']
+        df.loc[df['events'] == 'triple', 'wOBA_result'] = woba_weights['triple']
+        df.loc[df['events'] == 'home_run', 'wOBA_result'] = woba_weights['home_run']
     else:
         df['wOBA_result'] = clean_numeric_column(df['wOBA_result'])
     
@@ -578,8 +578,8 @@ def run_silent_mac_analysis(pitcher_name, target_hitters, db_manager):
     scanning_features = ['release_speed', 'InducedVertBreak', 'HorzBreak', 'release_spin_rate', 'release_pos_z', 'release_pos_x']
     clustering_features = ['release_speed', 'InducedVertBreak', 'HorzBreak', 'release_spin_rate']
     
-    df = df.dropna(subset=scanning_features + ["Pitcher", "Batter"])
-    pitcher_pitches = pitcher_pitches.dropna(subset=scanning_features + ["Pitcher", "Batter"])
+    df = df.dropna(subset=scanning_features + ["Pitcher", "batter"])
+    pitcher_pitches = pitcher_pitches.dropna(subset=scanning_features + ["Pitcher", "batter"])
     
     # === STEP 6: Scale features and cluster pitcher's arsenal ===
     StandardScaler, GaussianMixture, euclidean_distances, KneeLocator = get_sklearn_components()
@@ -646,7 +646,7 @@ def run_silent_mac_analysis(pitcher_name, target_hitters, db_manager):
     group_breakdown = []
     
     for hitter in target_hitters:
-        hitter_result = {"Batter": hitter}
+        hitter_result = {"batter": hitter}
         weighted_stats = []
         total_weight = 0
         
@@ -666,7 +666,7 @@ def run_silent_mac_analysis(pitcher_name, target_hitters, db_manager):
         
         for group, usage in pitch_group_usage.items():
             group_pitches = df[
-                (df["Batter"] == hitter) &
+                (df["batter"] == hitter) &
                 (df["PitchGroup"] == group) &
                 (df["MinDistToPitcher"] <= distance_threshold)
             ].copy()
@@ -675,14 +675,14 @@ def run_silent_mac_analysis(pitcher_name, target_hitters, db_manager):
                 continue
             
             # Clean plate location columns for zone calculation
-            group_pitches['PlateLocHeight'] = clean_numeric_column(group_pitches['PlateLocHeight'])
-            group_pitches['PlateLocSide'] = clean_numeric_column(group_pitches['PlateLocSide'])
+            group_pitches['plate_z'] = clean_numeric_column(group_pitches['plate_z'])
+            group_pitches['plate_x'] = clean_numeric_column(group_pitches['plate_x'])
             
             group_pitches["InZone"] = (
-                (group_pitches["PlateLocHeight"] >= strike_zone["bottom"]) &
-                (group_pitches["PlateLocHeight"] <= strike_zone["top"]) &
-                (group_pitches["PlateLocSide"] >= strike_zone["left"]) &
-                (group_pitches["PlateLocSide"] <= strike_zone["right"])
+                (group_pitches["plate_z"] >= strike_zone["bottom"]) &
+                (group_pitches["plate_z"] <= strike_zone["top"]) &
+                (group_pitches["plate_x"] >= strike_zone["left"]) &
+                (group_pitches["plate_x"] <= strike_zone["right"])
             )
             group_pitches["Swung"] = group_pitches["description"].isin(swing_calls)
             group_pitches["Whiff"] = group_pitches["description"] == "swinging_strike"
@@ -694,16 +694,16 @@ def run_silent_mac_analysis(pitcher_name, target_hitters, db_manager):
             total_run_value = group_pitches["run_value"].sum() if 'run_value' in group_pitches.columns else 0
             
             # Clean exit speed and angle columns
-            group_pitches['ExitSpeed'] = clean_numeric_column(group_pitches['ExitSpeed'])
-            group_pitches['Angle'] = clean_numeric_column(group_pitches['Angle'])
+            group_pitches['launch_speed'] = clean_numeric_column(group_pitches['launch_speed'])
+            group_pitches['launch_angle'] = clean_numeric_column(group_pitches['launch_angle'])
             
-            exit_velo = group_pitches["ExitSpeed"].mean()
-            launch_angle = group_pitches["Angle"].mean()
+            exit_velo = group_pitches["launch_speed"].mean()
+            launch_angle = group_pitches["launch_angle"].mean()
             
             balls_in_play = group_pitches[group_pitches["Ishit_into_play"]]
-            num_ground_balls = (balls_in_play["Angle"] < 10).sum()
+            num_ground_balls = (balls_in_play["launch_angle"] < 10).sum()
             gb_percent = round(100 * num_ground_balls / len(balls_in_play), 1) if len(balls_in_play) > 0 else np.nan
-            num_hard_hits = (balls_in_play["ExitSpeed"] >= 95).sum()
+            num_hard_hits = (balls_in_play["launch_speed"] >= 95).sum()
             hh_percent = round(100 * num_hard_hits / len(balls_in_play), 1) if len(balls_in_play) > 0 else np.nan
             
             rv_per_100 = 100 * total_run_value / total_pitches if total_pitches > 0 else 0
@@ -713,14 +713,14 @@ def run_silent_mac_analysis(pitcher_name, target_hitters, db_manager):
             # Calculate AVG for this group
             hit_mask = (
                 (group_pitches["description"] == "hit_into_play") &
-                (group_pitches["PlayResult"].isin(["Single", "Double", "Triple", "HomeRun"]))
+                (group_pitches["events"].isin(["single", "double", "triple", "home_run"]))
             )
             hits = hit_mask.sum()
             
             out_mask = (
-                ((group_pitches["KorBB"].isin(["Strikeout", "Walk"])) |
-                ((group_pitches["description"] == "hit_into_play") & (group_pitches["PlayResult"] == "Out"))) &
-                (group_pitches["PlayResult"] != "Sacrifice")
+                ((group_pitches["events"].isin(["strikeout", "walk"])) |
+                ((group_pitches["description"] == "hit_into_play") & (group_pitches["events"] == "Out"))) &
+                (group_pitches["events"] != "Sacrifice")
             )
             outs = out_mask.sum()
             
@@ -744,7 +744,7 @@ def run_silent_mac_analysis(pitcher_name, target_hitters, db_manager):
             
             # Compute wOBA for this group
             plate_ending = group_pitches[
-                (group_pitches["KorBB"].isin(["Strikeout", "Walk"])) |
+                (group_pitches["events"].isin(["strikeout", "walk"])) |
                 (group_pitches["description"].isin(["hit_into_play", "HitByPitch"]))
             ]
             
@@ -757,7 +757,7 @@ def run_silent_mac_analysis(pitcher_name, target_hitters, db_manager):
             total_woba_den += group_woba_denominator
             
             group_breakdown.append({
-                "Batter": hitter, "PitchGroup": group, "AVG": avg, "RV/100": round(rv_per_100, 2),
+                "batter": hitter, "PitchGroup": group, "AVG": avg, "RV/100": round(rv_per_100, 2),
                 "Whiff%": round(100 * total_whiffs / total_swings, 1) if total_swings > 0 else np.nan,
                 "SwStr%": round(100 * total_whiffs / total_pitches, 1) if total_pitches > 0 else np.nan,
                 "HH%": hh_percent, "ExitVelo": round(exit_velo, 1) if not np.isnan(exit_velo) else np.nan,
@@ -787,7 +787,7 @@ def run_silent_mac_analysis(pitcher_name, target_hitters, db_manager):
 
 def compute_heatmap_stats(df, metric_col, min_samples=3):
     """Compute heatmap statistics for zone analysis"""
-    valid = df[["PlateLocSide", "PlateLocHeight", metric_col]].dropna()
+    valid = df[["plate_x", "plate_z", metric_col]].dropna()
     if len(valid) < min_samples:
         return None, None, None
 
@@ -796,7 +796,7 @@ def compute_heatmap_stats(df, metric_col, min_samples=3):
     X, Y = np.meshgrid(x_range, y_range)
 
     try:
-        points = valid[["PlateLocSide", "PlateLocHeight"]].values
+        points = valid[["plate_x", "plate_z"]].values
         values = valid[metric_col].values
         Z = griddata(points, values, (X, Y), method='linear', fill_value=0)
 
@@ -831,7 +831,7 @@ def generate_zone_heatmap(df, selected_hitter):
 
     # Add flags to dataframe
     df["WhiffFlag"] = (df["description"] == "swinging_strike").astype(int)
-    df["HardHitFlag"] = ((df["ExitSpeed"] >= 95) & df["ExitSpeed"].notna()).astype(int)
+    df["HardHitFlag"] = ((df["launch_speed"] >= 95) & df["launch_speed"].notna()).astype(int)
 
     for i, (metric, title) in enumerate(metrics):
         for j, group in enumerate(pitch_groups):
@@ -866,15 +866,15 @@ def generate_zone_heatmap(df, selected_hitter):
                         cbar = fig.colorbar(cs, ax=ax, shrink=0.6)
                         cbar.set_label(title, rotation=270, labelpad=15)
                 else:
-                    valid = subset[["PlateLocSide", "PlateLocHeight", metric]].dropna()
+                    valid = subset[["plate_x", "plate_z", metric]].dropna()
                     if not valid.empty:
                         if metric in ["WhiffFlag", "HardHitFlag"]:
                             colors = ['lightblue' if x == 0 else 'red' for x in valid[metric]]
-                            ax.scatter(valid["PlateLocSide"], valid["PlateLocHeight"],
+                            ax.scatter(valid["plate_x"], valid["plate_z"],
                                        c=colors, s=40, alpha=0.7, edgecolors='black')
                         else:
                             vmin, vmax = 0, 1 if metric != "wOBA_result" else min(valid[metric].max() * 1.1, 1.8)
-                            sc = ax.scatter(valid["PlateLocSide"], valid["PlateLocHeight"],
+                            sc = ax.scatter(valid["plate_x"], valid["plate_z"],
                                             c=valid[metric], cmap="RdYlBu_r", s=60,
                                             edgecolors="black", alpha=0.8,
                                             vmin=0, vmax=vmax)
@@ -925,13 +925,13 @@ def create_comprehensive_visualization(summary_df, breakdown_df, pitcher_name):
     # Add summary points with comprehensive hover info
     for _, row in summary_df.iterrows():
         fig.add_trace(go.Scatter(
-            x=[row["Batter"]],
+            x=[row["batter"]],
             y=[row["RV/100"]],
             mode="markers",
             marker=dict(size=20, color="black"),
             name="Overall",
             hovertemplate=(
-                f"<b>{row['Batter']}</b><br>"
+                f"<b>{row['batter']}</b><br>"
                 f"RV/100: {row['RV/100']}<br>"
                 f"wOBA: {row['wOBA']}<br>"
                 f"AVG: {row['AVG']}<br>"
@@ -950,7 +950,7 @@ def create_comprehensive_visualization(summary_df, breakdown_df, pitcher_name):
     # Add breakdown points with comprehensive hover info
     for _, row in breakdown_df.iterrows():
         fig.add_trace(go.Scatter(
-            x=[row["Batter"]],
+            x=[row["batter"]],
             y=[row["RV/100"]],
             mode="markers+text",
             marker=dict(size=14, color=color_dict.get(row["PitchGroup"], "gray")),
@@ -958,7 +958,7 @@ def create_comprehensive_visualization(summary_df, breakdown_df, pitcher_name):
             textposition="top center",
             textfont=dict(size=10, color="black"),
             hovertemplate=(
-                f"<b>{row['Batter']}</b><br>"
+                f"<b>{row['batter']}</b><br>"
                 f"PitchGroup: {row['PitchGroup']}<br>"
                 f"RV/100: {row['RV/100']}<br>"
                 f"wOBA: {row['wOBA']}<br>"
@@ -1004,7 +1004,7 @@ def create_comprehensive_visualization(summary_df, breakdown_df, pitcher_name):
         xaxis=dict(
             tickmode="array",
             tickvals=list(range(len(summary_df))),
-            ticktext=summary_df["Batter"].tolist(),
+            ticktext=summary_df["batter"].tolist(),
             tickangle=45
         )
     )
@@ -1050,7 +1050,7 @@ def create_movement_chart(movement_df):
                 mode="markers",
                 marker=dict(color=color, size=10, opacity=0.7),
                 name=pitch_type,
-                customdata=pitch_df[["Batter", "release_speed", "release_spin_rate"]],
+                customdata=pitch_df[["batter", "release_speed", "release_spin_rate"]],
                 hovertemplate="<b>%{customdata[0]}</b><br>"
                               "HB: %{x}<br>"
                               "IVB: %{y}<br>"
@@ -1101,7 +1101,7 @@ def analyze_hot_arms_strategy(hot_arms, selected_hitters, db_manager):
                 for _, row in summary_df.iterrows():
                     all_matchups.append({
                         'Pitcher': pitcher,
-                        'Hitter': row['Batter'],
+                        'Hitter': row['batter'],
                         'RV/100': row['RV/100'],
                         'wOBA': row['wOBA'],
                         'Pitches': row['Pitches'],
@@ -1112,8 +1112,8 @@ def analyze_hot_arms_strategy(hot_arms, selected_hitters, db_manager):
                 # Store pitcher summary
                 pitcher_summaries[pitcher] = {
                     'avg_rv': summary_df['RV/100'].mean(),
-                    'best_matchup': summary_df.loc[summary_df['RV/100'].idxmin(), 'Batter'],
-                    'worst_matchup': summary_df.loc[summary_df['RV/100'].idxmax(), 'Batter'],
+                    'best_matchup': summary_df.loc[summary_df['RV/100'].idxmin(), 'batter'],
+                    'worst_matchup': summary_df.loc[summary_df['RV/100'].idxmax(), 'batter'],
                     'best_rv': summary_df['RV/100'].min(),
                     'worst_rv': summary_df['RV/100'].max(),
                     'total_pitches': summary_df['Pitches'].sum()
@@ -1270,7 +1270,7 @@ def main():
     with col1:
         st.metric("Available Pitchers", len(available_pitchers))
     with col2:
-        st.metric("Available Batters", len(available_batters))
+        st.metric("Available batters", len(available_batters))
     
     st.markdown("---")
     
@@ -1325,7 +1325,7 @@ def main():
                     
                     # Filter movement data for charts and store in session state
                     movement_df = full_df[
-                        (full_df["Batter"].isin(selected_hitters)) &
+                        (full_df["batter"].isin(selected_hitters)) &
                         (full_df["MinDistToPitcher"] <= distance_threshold)
                     ].copy()
                     st.session_state.movement_df = movement_df
@@ -1380,7 +1380,7 @@ def main():
         if selected_hitter_heatmap:
             # This updates when dropdown changes
             hitter_data = st.session_state.movement_df[
-                st.session_state.movement_df["Batter"] == selected_hitter_heatmap
+                st.session_state.movement_df["batter"] == selected_hitter_heatmap
             ].copy()
             
             if not hitter_data.empty:
@@ -1403,7 +1403,7 @@ def main():
         for hitter in st.session_state.selected_hitters:
             for group in ["Fastball", "Breaking", "Offspeed"]:
                 matches = st.session_state.movement_df[
-                    (st.session_state.movement_df["Batter"] == hitter) &
+                    (st.session_state.movement_df["batter"] == hitter) &
                     (st.session_state.movement_df["PitchGroup"] == group)
                 ]
                 coverage_matrix.loc[hitter, group] = len(matches)
@@ -1446,8 +1446,8 @@ def main():
         st.subheader("🔍 Analysis Insights")
         
         # Calculate insights
-        best_matchup = st.session_state.summary_df.loc[st.session_state.summary_df["RV/100"].idxmin(), "Batter"] if not st.session_state.summary_df.empty else "N/A"
-        worst_matchup = st.session_state.summary_df.loc[st.session_state.summary_df["RV/100"].idxmax(), "Batter"] if not st.session_state.summary_df.empty else "N/A"
+        best_matchup = st.session_state.summary_df.loc[st.session_state.summary_df["RV/100"].idxmin(), "batter"] if not st.session_state.summary_df.empty else "N/A"
+        worst_matchup = st.session_state.summary_df.loc[st.session_state.summary_df["RV/100"].idxmax(), "batter"] if not st.session_state.summary_df.empty else "N/A"
         
         col1, col2, col3 = st.columns(3)
         
