@@ -37,7 +37,7 @@ st.set_page_config(
 color_dict = {"Fastball": "red", "Breaking": "blue", "Offspeed": "green", "Unknown": "gray"}
 distance_threshold = 0.6
 strike_zone = {"top": 3.3775, "bottom": 1.5, "left": -0.83083, "right": 0.83083}
-swing_calls = ["StrikeSwinging", "FoulBallFieldable", "FoulBallNotFieldable", "InPlay"]
+swing_calls = ["swinging_strike", "foul", "foul", "hit_into_play"]
 
 # === EXACT SAME wOBA weights as MAC_module ===
 woba_weights = {
@@ -259,7 +259,7 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
         if 'wOBA_result' not in df.columns:
             df['wOBA_result'] = 0.0  # Initialize
             df.loc[df['KorBB'] == 'Walk', 'wOBA_result'] = woba_weights['Walk']
-            df.loc[df['PitchCall'] == 'HitByPitch', 'wOBA_result'] = woba_weights['HitByPitch']
+            df.loc[df['description'] == 'HitByPitch', 'wOBA_result'] = woba_weights['HitByPitch']
             df.loc[df['PlayResult'] == 'Single', 'wOBA_result'] = woba_weights['Single']
             df.loc[df['PlayResult'] == 'Double', 'wOBA_result'] = woba_weights['Double']
             df.loc[df['PlayResult'] == 'Triple', 'wOBA_result'] = woba_weights['Triple']
@@ -420,9 +420,9 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
                     (group_pitches["PlateLocSide"] >= strike_zone["left"]) &
                     (group_pitches["PlateLocSide"] <= strike_zone["right"])
                 )
-                group_pitches["Swung"] = group_pitches["PitchCall"].isin(swing_calls)
-                group_pitches["Whiff"] = group_pitches["PitchCall"] == "StrikeSwinging"
-                group_pitches["IsInPlay"] = group_pitches['PitchCall'].isin(["InPlay"])
+                group_pitches["Swung"] = group_pitches["description"].isin(swing_calls)
+                group_pitches["Whiff"] = group_pitches["description"] == "swinging_strike"
+                group_pitches["Ishit_into_play"] = group_pitches['description'].isin(["hit_into_play"])
                 
                 total_pitches = len(group_pitches)
                 total_swings = group_pitches["Swung"].sum()
@@ -436,7 +436,7 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
                 exit_velo = group_pitches["ExitSpeed"].mean()
                 launch_angle = group_pitches["Angle"].mean()
                 
-                balls_in_play = group_pitches[group_pitches["IsInPlay"]]
+                balls_in_play = group_pitches[group_pitches["Ishit_into_play"]]
                 num_ground_balls = (balls_in_play["Angle"] < 10).sum()
                 gb_percent = round(100 * num_ground_balls / len(balls_in_play), 1) if len(balls_in_play) > 0 else np.nan
                 num_hard_hits = (balls_in_play["ExitSpeed"] >= 95).sum()
@@ -448,14 +448,14 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
                 
                 # Calculate AVG for this group (EXACT SAME)
                 hit_mask = (
-                    (group_pitches["PitchCall"] == "InPlay") &
+                    (group_pitches["description"] == "hit_into_play") &
                     (group_pitches["PlayResult"].isin(["Single", "Double", "Triple", "HomeRun"]))
                 )
                 hits = hit_mask.sum()
                 
                 out_mask = (
                     ((group_pitches["KorBB"].isin(["Strikeout", "Walk"])) |
-                    ((group_pitches["PitchCall"] == "InPlay") & (group_pitches["PlayResult"] == "Out"))) &
+                    ((group_pitches["description"] == "hit_into_play") & (group_pitches["PlayResult"] == "Out"))) &
                     (group_pitches["PlayResult"] != "Sacrifice")
                 )
                 outs = out_mask.sum()
@@ -481,7 +481,7 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
                 # Compute wOBA for this group (EXACT SAME)
                 plate_ending = group_pitches[
                     (group_pitches["KorBB"].isin(["Strikeout", "Walk"])) |
-                    (group_pitches["PitchCall"].isin(["InPlay", "HitByPitch"]))
+                    (group_pitches["description"].isin(["hit_into_play", "HitByPitch"]))
                 ]
                 
                 group_woba_numerator = plate_ending["wOBA_result"].sum()
@@ -505,7 +505,7 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
                     "GB%": gb_percent,
                     "UsageWeight": round(usage, 2),
                     "Pitches": total_pitches,
-                    "InPlay": len(balls_in_play),
+                    "hit_into_play": len(balls_in_play),
                     "wOBA": group_woba,
                 })
             
@@ -520,7 +520,7 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
             hitter_result["HH%"] = round(100 * total_hard_hits / total_bips, 1) if total_bips > 0 else np.nan
             hitter_result["GB%"] = round(100 * total_gbs / total_bips, 1) if total_bips > 0 else np.nan
             hitter_result["Pitches"] = total_pitches_seen
-            hitter_result["InPlay"] = total_bips
+            hitter_result["hit_into_play"] = total_bips
             hitter_result["wOBA"] = round(total_woba_num / total_woba_den, 3) if total_woba_den > 0 else np.nan
             
             results.append(hitter_result)
@@ -566,7 +566,7 @@ def run_silent_mac_analysis(pitcher_name, target_hitters, db_manager):
     if 'wOBA_result' not in df.columns:
         df['wOBA_result'] = 0.0
         df.loc[df['KorBB'] == 'Walk', 'wOBA_result'] = woba_weights['Walk']
-        df.loc[df['PitchCall'] == 'HitByPitch', 'wOBA_result'] = woba_weights['HitByPitch']
+        df.loc[df['description'] == 'HitByPitch', 'wOBA_result'] = woba_weights['HitByPitch']
         df.loc[df['PlayResult'] == 'Single', 'wOBA_result'] = woba_weights['Single']
         df.loc[df['PlayResult'] == 'Double', 'wOBA_result'] = woba_weights['Double']
         df.loc[df['PlayResult'] == 'Triple', 'wOBA_result'] = woba_weights['Triple']
@@ -684,9 +684,9 @@ def run_silent_mac_analysis(pitcher_name, target_hitters, db_manager):
                 (group_pitches["PlateLocSide"] >= strike_zone["left"]) &
                 (group_pitches["PlateLocSide"] <= strike_zone["right"])
             )
-            group_pitches["Swung"] = group_pitches["PitchCall"].isin(swing_calls)
-            group_pitches["Whiff"] = group_pitches["PitchCall"] == "StrikeSwinging"
-            group_pitches["IsInPlay"] = group_pitches['PitchCall'].isin(["InPlay"])
+            group_pitches["Swung"] = group_pitches["description"].isin(swing_calls)
+            group_pitches["Whiff"] = group_pitches["description"] == "swinging_strike"
+            group_pitches["Ishit_into_play"] = group_pitches['description'].isin(["hit_into_play"])
             
             total_pitches = len(group_pitches)
             total_swings = group_pitches["Swung"].sum()
@@ -700,7 +700,7 @@ def run_silent_mac_analysis(pitcher_name, target_hitters, db_manager):
             exit_velo = group_pitches["ExitSpeed"].mean()
             launch_angle = group_pitches["Angle"].mean()
             
-            balls_in_play = group_pitches[group_pitches["IsInPlay"]]
+            balls_in_play = group_pitches[group_pitches["Ishit_into_play"]]
             num_ground_balls = (balls_in_play["Angle"] < 10).sum()
             gb_percent = round(100 * num_ground_balls / len(balls_in_play), 1) if len(balls_in_play) > 0 else np.nan
             num_hard_hits = (balls_in_play["ExitSpeed"] >= 95).sum()
@@ -712,14 +712,14 @@ def run_silent_mac_analysis(pitcher_name, target_hitters, db_manager):
             
             # Calculate AVG for this group
             hit_mask = (
-                (group_pitches["PitchCall"] == "InPlay") &
+                (group_pitches["description"] == "hit_into_play") &
                 (group_pitches["PlayResult"].isin(["Single", "Double", "Triple", "HomeRun"]))
             )
             hits = hit_mask.sum()
             
             out_mask = (
                 ((group_pitches["KorBB"].isin(["Strikeout", "Walk"])) |
-                ((group_pitches["PitchCall"] == "InPlay") & (group_pitches["PlayResult"] == "Out"))) &
+                ((group_pitches["description"] == "hit_into_play") & (group_pitches["PlayResult"] == "Out"))) &
                 (group_pitches["PlayResult"] != "Sacrifice")
             )
             outs = out_mask.sum()
@@ -745,7 +745,7 @@ def run_silent_mac_analysis(pitcher_name, target_hitters, db_manager):
             # Compute wOBA for this group
             plate_ending = group_pitches[
                 (group_pitches["KorBB"].isin(["Strikeout", "Walk"])) |
-                (group_pitches["PitchCall"].isin(["InPlay", "HitByPitch"]))
+                (group_pitches["description"].isin(["hit_into_play", "HitByPitch"]))
             ]
             
             group_woba_numerator = plate_ending["wOBA_result"].sum()
@@ -763,7 +763,7 @@ def run_silent_mac_analysis(pitcher_name, target_hitters, db_manager):
                 "HH%": hh_percent, "ExitVelo": round(exit_velo, 1) if not np.isnan(exit_velo) else np.nan,
                 "Launch": round(launch_angle, 1) if not np.isnan(launch_angle) else np.nan,
                 "GB%": gb_percent, "UsageWeight": round(usage, 2), "Pitches": total_pitches,
-                "InPlay": len(balls_in_play), "wOBA": group_woba,
+                "hit_into_play": len(balls_in_play), "wOBA": group_woba,
             })
         
         # Summary calculations
@@ -777,7 +777,7 @@ def run_silent_mac_analysis(pitcher_name, target_hitters, db_manager):
         hitter_result["HH%"] = round(100 * total_hard_hits / total_bips, 1) if total_bips > 0 else np.nan
         hitter_result["GB%"] = round(100 * total_gbs / total_bips, 1) if total_bips > 0 else np.nan
         hitter_result["Pitches"] = total_pitches_seen
-        hitter_result["InPlay"] = total_bips
+        hitter_result["hit_into_play"] = total_bips
         hitter_result["wOBA"] = round(total_woba_num / total_woba_den, 3) if total_woba_den > 0 else np.nan
         
         results.append(hitter_result)
@@ -830,7 +830,7 @@ def generate_zone_heatmap(df, selected_hitter):
     pitch_groups = ["Fastball", "Breaking", "Offspeed"]
 
     # Add flags to dataframe
-    df["WhiffFlag"] = (df["PitchCall"] == "StrikeSwinging").astype(int)
+    df["WhiffFlag"] = (df["description"] == "swinging_strike").astype(int)
     df["HardHitFlag"] = ((df["ExitSpeed"] >= 95) & df["ExitSpeed"].notna()).astype(int)
 
     for i, (metric, title) in enumerate(metrics):
@@ -942,7 +942,7 @@ def create_comprehensive_visualization(summary_df, breakdown_df, pitcher_name):
                 f"ExitVelo: {row['ExitVelo']}<br>"
                 f"Launch: {row['Launch']}<br>"
                 f"Pitches: {row['Pitches']}<br>"
-                f"InPlay: {row['InPlay']}<extra></extra>"
+                f"hit_into_play: {row['hit_into_play']}<extra></extra>"
             ),
             showlegend=False
         ))
@@ -970,7 +970,7 @@ def create_comprehensive_visualization(summary_df, breakdown_df, pitcher_name):
                 f"ExitVelo: {row['ExitVelo']}<br>"
                 f"Launch: {row['Launch']}<br>"
                 f"Pitches: {row['Pitches']}<br>"
-                f"InPlay: {row['InPlay']}<extra></extra>"
+                f"hit_into_play: {row['hit_into_play']}<extra></extra>"
             ),
             showlegend=False
         ))
