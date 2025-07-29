@@ -1056,15 +1056,17 @@ def create_movement_chart(movement_df):
                               "Spin Rate: %{customdata[3]} rpm<extra></extra>"
             ))
     
+    x_min = movement_df_filtered["HorzBreak"].min() - 2
+    x_max = movement_df_filtered["HorzBreak"].max() + 2
+    
     fig.update_layout(
         title="Pitch Movement (HorzBreak vs. IndVertBreak)",
-        xaxis=dict(title="Horizontal Break", range=[-30, 30]),
+        xaxis=dict(title="Horizontal Break", range=[x_min, x_max]),  # Dynamic range
         yaxis=dict(title="Induced Vertical Break", range=[-30, 30], scaleanchor="x", scaleratio=1),
         template="simple_white",
         height=600,
         width=1000
     )
-    
     return fig
     # Move these functions OUTSIDE of main() - place them after create_movement_chart()
 
