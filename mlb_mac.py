@@ -71,7 +71,7 @@ class DatabaseManager:
             st.info("📂 Downloading 2024 data from Dropbox...")
             
             # Download 2024 data
-            ncaa_url = "https://www.dropbox.com/scl/fi/54o93jhavlk1dlictfhup/statcast_2024.parquet?rlkey=4kud2iumjqb96sh4lb3girjdw&st=2rap3c62&dl=1"
+            ncaa_url = "https://www.dropbox.com/scl/fi/54o93jhavlk1dlictfhup/statcast_2024.parquet?rlkey=4kud2iumjqb96sh4lb3girjdw&st=me2kp9qt&dl=1"
             response = requests.get(ncaa_url, timeout=300)
             response.raise_for_status()
             progress_bar.progress(30)
@@ -83,7 +83,7 @@ class DatabaseManager:
             # Download 2025 data
             st.info("📂 Downloading 2025 MLB data from Dropbox...")
             try:
-                ccbl_url = "https://www.dropbox.com/scl/fi/guwqimo1k39ivraj5widj/statcast_2025.parquet?rlkey=0afxm2kgtelcw1egs0owkumjx&st=g2vtvv2q&dl=1"
+                ccbl_url = "https://www.dropbox.com/scl/fi/guwqimo1k39ivraj5widj/statcast_2025.parquet?rlkey=0afxm2kgtelcw1egs0owkumjx&st=hzxgwr8f&dl=1"
                 
                 ccbl_response = requests.get(ccbl_url, timeout=180)
                 ccbl_response.raise_for_status()
@@ -268,7 +268,7 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
     st.success("✅ wOBA values assigned")
     
     # === STEP 5: Feature sets (EXACT SAME) ===
-    scanning_features = ['release_speed', 'IndVertBreak', 'HorzBreak', 'release_spin_rate', 'release_pos_z', 'release_pos_x']
+    scanning_features = ['release_speed', 'IndVertBreak', 'HorzBreak', 'release_spin_rate', 'release_pos_z', 'release_pos_x', 'arm_angle']
     clustering_features = ['release_speed', 'IndVertBreak', 'HorzBreak', 'release_spin_rate']
     
     df = df.dropna(subset=scanning_features + ["player_name", "batter_name"])
@@ -573,7 +573,7 @@ def run_silent_mac_analysis(pitcher_name, target_hitters, db_manager):
         df['wOBA_result'] = clean_numeric_column(df['wOBA_result'])
     
     # === STEP 5: Feature sets ===
-    scanning_features = ['release_speed', 'IndVertBreak', 'HorzBreak', 'release_spin_rate', 'release_pos_z', 'release_pos_x']
+    scanning_features = ['release_speed', 'IndVertBreak', 'HorzBreak', 'release_spin_rate', 'release_pos_z', 'release_pos_x', 'arm_angle']
     clustering_features = ['release_speed', 'IndVertBreak', 'HorzBreak', 'release_spin_rate']
     
     df = df.dropna(subset=scanning_features + ["player_name", "batter_name"])
