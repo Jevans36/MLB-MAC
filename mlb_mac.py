@@ -1030,6 +1030,7 @@ def create_comprehensive_visualization(summary_df, breakdown_df, pitcher_name):
     
     return fig
 
+
 def create_movement_chart(movement_df):
     """Create pitch movement chart matching Dash app style"""
     movement_df_filtered = movement_df[
@@ -1056,18 +1057,16 @@ def create_movement_chart(movement_df):
                               "Spin Rate: %{customdata[3]} rpm<extra></extra>"
             ))
     
-    x_min = movement_df_filtered["HorzBreak"].min() - 2
-    x_max = movement_df_filtered["HorzBreak"].max() + 2
-
-    
     fig.update_layout(
         title="Pitch Movement (HorzBreak vs. IndVertBreak)",
-        xaxis=dict(title="Horizontal Break"),  # Let it auto-scale
-        yaxis=dict(title="Induced Vertical Break"),  # Let it auto-scale
+        xaxis=dict(title="Horizontal Break", range=[-25, 25]),
+        yaxis=dict(title="Induced Vertical Break", range=[-25, 25], scaleanchor="x", scaleratio=1),
         template="simple_white",
-        height=600,
-        width=1000
+        height=800,  # Make it square-ish
+        width=800,   # Same as height
+        autosize=False  # Prevent auto-resizing
     )
+    
     return fig
     # Move these functions OUTSIDE of main() - place them after create_movement_chart()
 
