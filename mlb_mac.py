@@ -453,9 +453,15 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
                 
                 out_mask = (
                     ((group_pitches["events"].isin(["strikeout", "walk"])) |
-                    ((group_pitches["description"] == "hit_into_play") & (group_pitches["events"] == "Out"))) &
+                    ((group_pitches["description"] == "hit_into_play") & (group_pitches["events"].isin("force_out", "field_out", "double_play", "grounded_into_double_play", "fielders_choice", "fielders_choice_out", "strikeout_double_play", "triple_play", "field_error"))) &
                     (group_pitches["events"] != "sac_bunt") & (group_pitches["events"] != "sac_fly")
                 )
+
+                # Try this, might be an easier way to get demominator for batting avg, alternative to above
+                # avg_denom = (
+                #    group_pitches["events"].isin(group_pitches["events"].isin("force_out", "field_out", "double_play", "grounded_into_double_play", "fielders_choice", "fielders_choice_out", "strikeout_double_play", "triple_play", "field_error", "strikeout")
+                # )
+                
                 outs = out_mask.sum()
                 
                 avg = round(hits / (hits + outs), 3) if (hits + outs) > 0 else np.nan
