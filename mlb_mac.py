@@ -1063,7 +1063,7 @@ def create_movement_chart(movement_df):
         yaxis=dict(title="Induced Vertical Break", range=[-25, 25], scaleanchor="x", scaleratio=1),
         template="simple_white",
         height=800,  # Make it square-ish
-        width=800,   # Same as height
+        width=600,   # Same as height
         autosize=False  # Prevent auto-resizing
     )
     
