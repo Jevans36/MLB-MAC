@@ -61,14 +61,14 @@ class DatabaseManager:
     def ensure_database_exists(self):
         """Download and create database if it doesn't exist"""
         if not os.path.exists(self.db_path):
-            st.info("📂 Setting up database for first time use...")
+            st.info("Setting up database for first time use...")
             self.create_database_from_dropbox()
     
     def create_database_from_dropbox(self):
         """Create database from both 2024 and 2025 MLB data (both from Dropbox)"""
         try:
             progress_bar = st.progress(0)
-            st.info("📂 Downloading 2024 data from Dropbox...")
+            st.info("Downloading 2024 data from Dropbox...")
             
             # Download 2024 data
             ncaa_url = "https://www.dropbox.com/scl/fi/54o93jhavlk1dlictfhup/statcast_2024.parquet?rlkey=4kud2iumjqb96sh4lb3girjdw&st=me2kp9qt&dl=1"
@@ -77,7 +77,7 @@ class DatabaseManager:
             progress_bar.progress(30)
             
             ncaa_df = pd.read_parquet(BytesIO(response.content))
-            st.success(f"✅ 2024 MLB data loaded: {len(ncaa_df):,} rows")
+            st.success(f"2024 MLB data loaded: {len(ncaa_df):,} rows")
             progress_bar.progress(50)
             
             # Download 2025 data
@@ -89,12 +89,12 @@ class DatabaseManager:
                 ccbl_response.raise_for_status()
                 
                 ccbl_df = pd.read_parquet(BytesIO(ccbl_response.content))
-                st.success(f"✅ 2025 MLB data loaded: {len(ccbl_df):,} rows")
+                st.success(f"2025 MLB data loaded: {len(ccbl_df):,} rows")
                 df = pd.concat([ncaa_df, ccbl_df], ignore_index=True)
-                st.success(f"✅ Combined dataset: {len(df):,} rows")
+                st.success(f"Combined dataset: {len(df):,} rows")
                 
             except Exception as e:  # This except is now correctly placed
-                st.warning(f"⚠️ Could not load 2025 data: {e}")
+                st.warning(f"Could not load 2025 data: {e}")
                 st.info("Using 2024 data only")
                 df = ncaa_df
             
@@ -131,7 +131,7 @@ class DatabaseManager:
             conn.commit()
             conn.close()
             progress_bar.progress(100)
-            st.success("✅ Database created successfully!")
+            st.success("Database created successfully!")
             
             # Clean up memory
             del ncaa_df
@@ -140,7 +140,7 @@ class DatabaseManager:
             del df
             
         except Exception as e:
-            st.error(f"❌ Error creating database: {e}")
+            st.error(f"Error creating database: {e}")
             raise
     
     def get_connection(self):
@@ -203,10 +203,10 @@ class DatabaseManager:
 def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
     """Complete MAC analysis with ALL original logic preserved"""
     
-    st.info("🔧 **MAC Analysis Pipeline Started**")
+    st.info("**MAC Analysis Pipeline Started**")
     
     # === STEP 1: Get Data (EXACT SAME as MAC_module) ===
-    with st.spinner("📊 Loading analysis data..."):
+    with st.spinner("Loading analysis data..."):
         df = db_manager.get_analysis_data(pitcher_name, target_hitters)
         
         if df.empty:
@@ -219,10 +219,10 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
             st.error(f"No pitches found for pitcher: {pitcher_name}")
             return None, None, None
     
-    st.success(f"✅ Data loaded: {len(df):,} total rows, {len(pitcher_pitches):,} pitcher rows")
+    st.success(f"Data loaded: {len(df):,} total rows, {len(pitcher_pitches):,} pitcher rows")
     
     # === STEP 2: Clean Numeric Columns (EXACT SAME as MAC_module) ===
-    with st.spinner("🧹 Cleaning numeric columns..."):
+    with st.spinner("Cleaning numeric columns..."):
         numeric_columns = [
             'release_speed', 'IndVertBreak', 'HorzBreak', 'release_spin_rate', 'release_pos_z', 'release_pos_x',
             'delta_run_exp', 'RunsScored', 'OutsOnPlay', 'launch_speed', 'launch_angle', 'plate_z', 'plate_x'
@@ -239,7 +239,7 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
             st.error(f"Missing required columns: {missing_cols}")
             return None, None, None
     
-    st.success("✅ Numeric columns cleaned and validated")
+    st.success("Numeric columns cleaned and validated")
     
     # USING CCBL R/OUT AS PREDEFINED - previously was FINDING r/out AFTER filtering for batter/pitcher matchup (invalid approach!)
     LEAGUE_R_OUT = 0.193
@@ -247,13 +247,13 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
     # Replace STEP 3 in run_complete_mac_analysis with this:
     def get_league_environment():
         """Return pre-calculated league environment"""
-        st.info(f"📈 Using pre-calculated league environment: R/Out = {LEAGUE_R_OUT:.3f}")
+        st.info(f"Using pre-calculated league environment: R/Out = {LEAGUE_R_OUT:.3f}")
         return LEAGUE_R_OUT
 
     r_out = get_league_environment()
     
     # === STEP 4: Assign wOBA result values (EXACT SAME) ===
-    with st.spinner("💯 Assigning wOBA values..."):
+    with st.spinner("Assigning wOBA values..."):
         if 'wOBA_result' not in df.columns:
             df['wOBA_result'] = 0.0  # Initialize
             df.loc[df['events'] == 'walk', 'wOBA_result'] = woba_weights['walk']
@@ -265,7 +265,7 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
         else:
             df['wOBA_result'] = clean_numeric_column(df['wOBA_result'])
     
-    st.success("✅ wOBA values assigned")
+    st.success("wOBA values assigned")
     
     # === STEP 5: Feature sets (EXACT SAME) ===
     scanning_features = ['release_speed', 'IndVertBreak', 'HorzBreak', 'release_spin_rate', 'release_pos_z', 'release_pos_x', 'arm_angle']
@@ -274,11 +274,11 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
     df = df.dropna(subset=scanning_features + ["player_name", "batter_name"])
     pitcher_pitches = pitcher_pitches.dropna(subset=scanning_features + ["player_name", "batter_name"])
     
-    st.info(f"🎯 Using clustering features: {clustering_features}")
-    st.info(f"🔍 Using scanning features: {scanning_features}")
+    st.info(f"Using clustering features: {clustering_features}")
+    st.info(f"Using scanning features: {scanning_features}")
     
     # === STEP 6: Scale features and cluster pitcher's arsenal (EXACT SAME) ===
-    with st.spinner("🤖 Clustering pitcher's arsenal..."):
+    with st.spinner("Clustering pitcher's arsenal..."):
         StandardScaler, GaussianMixture, euclidean_distances, KneeLocator = get_sklearn_components()
         
         # Step 1: Fit using clustering features on pitcher's data (EXACT SAME)
@@ -301,10 +301,10 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
         best_gmm = GaussianMixture(n_components=optimal_k, random_state=42)
         pitcher_pitches['PitchCluster'] = best_gmm.fit_predict(X_cluster)
     
-    st.success(f"✅ Optimal clusters found: {optimal_k} clusters")
+    st.success(f"Optimal clusters found: {optimal_k} clusters")
     
     # === STEP 7: Assign PitchGroup using pitch_name majority (EXACT SAME) ===
-    with st.spinner("🏷️ Assigning pitch groups..."):
+    with st.spinner("Assigning pitch groups..."):
         autopitchtype_to_group = {
             'Four-Seam': 'Fastball',
             '4-Seam Fastball': 'Fastball',
@@ -351,14 +351,14 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
         # Compute pitch group usage (EXACT SAME)
         pitch_group_usage = pitcher_pitches['PitchGroup'].value_counts(normalize=True).to_dict()
     
-    st.success(f"✅ Pitch groups assigned: {list(pitch_group_usage.keys())}")
+    st.success(f"Pitch groups assigned: {list(pitch_group_usage.keys())}")
     
     # Show pitch group usage
     usage_text = ", ".join([f"{group}: {usage*100:.1f}%" for group, usage in pitch_group_usage.items()])
-    st.info(f"🎯 Pitcher's arsenal usage: {usage_text}")
+    st.info(f"Pitcher's arsenal usage: {usage_text}")
     
     # === STEP 8: Tag FULL dataset with MinDistToPitcher (EXACT SAME CRITICAL FIX) ===
-    with st.spinner("📏 Calculating pitch similarity distances..."):
+    with st.spinner("Calculating pitch similarity distances..."):
         scaler_all = StandardScaler()
         df_scaled = scaler_all.fit_transform(df[scanning_features])  # FULL dataset
         X_pitcher_full = scaler_all.transform(pitcher_pitches[scanning_features])
@@ -371,10 +371,10 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
         df['PitchGroup'] = df['PitchCluster'].map(cluster_to_type)
     
     similar_pitches_count = (df['MinDistToPitcher'] <= distance_threshold).sum()
-    st.success(f"✅ Similarity calculated: {similar_pitches_count:,} similar pitches found (threshold: {distance_threshold})")
+    st.success(f"Similarity calculated: {similar_pitches_count:,} similar pitches found (threshold: {distance_threshold})")
     
     # === STEP 9: Matchup scoring (EXACT SAME LOGIC) ===
-    with st.spinner("🥊 Running matchup analysis..."):
+    with st.spinner("Running matchup analysis..."):
         results = []
         group_breakdown = []
         
@@ -539,7 +539,7 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
             
             results.append(hitter_result)
     
-    st.success("✅ **MAC Analysis Complete!** All original logic preserved")
+    st.success("**MAC Analysis Complete!** All original logic preserved")
     
     return pd.DataFrame(results), pd.DataFrame(group_breakdown), df
 
@@ -734,9 +734,14 @@ def run_silent_mac_analysis(pitcher_name, target_hitters, db_manager):
             hits = hit_mask.sum()
             
             out_mask = (
-                ((group_pitches["events"].isin(["strikeout", "walk"])) |
-                ((group_pitches["description"] == "hit_into_play") & (group_pitches["events"] == "Out"))) &
-                (group_pitches["events"] != "Sacrifice")
+                (group_pitches["events"].isin(["strikeout", "walk"])) |
+                ((group_pitches["description"] == "hit_into_play") & 
+                 (group_pitches["events"].isin(["force_out", "field_out", "double_play", 
+                                               "grounded_into_double_play", "fielders_choice", 
+                                               "fielders_choice_out", "strikeout_double_play", 
+                                               "triple_play", "field_error"]))) &
+                (group_pitches["events"] != "sac_bunt") & 
+                (group_pitches["events"] != "sac_fly")
             )
             outs = out_mask.sum()
             
@@ -1108,7 +1113,7 @@ def analyze_hot_arms_strategy(hot_arms, selected_hitters, db_manager):
             # Update progress
             progress = (i + 1) / len(hot_arms)
             progress_bar.progress(progress)
-            status_text.text(f"🔥 Analyzing {pitcher} ({i+1}/{len(hot_arms)})")
+            status_text.text(f"Analyzing {pitcher} ({i+1}/{len(hot_arms)})")
             
             # Run SILENT MAC analysis for this pitcher
             summary_df, breakdown_df, _ = run_silent_mac_analysis(
@@ -1189,7 +1194,7 @@ def create_optimal_usage_recommendations(matchups_df, pitcher_summaries):
     # Best overall matchup
     best_overall = matchups_df.loc[matchups_df['RV/100'].idxmin()]
     recommendations.append({
-        'type': '🎯 Best Overall Matchup',
+        'type': 'Best Overall Matchup',
         'recommendation': f"{best_overall['Pitcher']} vs {best_overall['Hitter']}",
         'details': f"RV/100: {best_overall['RV/100']:.2f} (Excellent pitcher advantage)"
     })
@@ -1197,7 +1202,7 @@ def create_optimal_usage_recommendations(matchups_df, pitcher_summaries):
     # Worst matchup to avoid
     worst_overall = matchups_df.loc[matchups_df['RV/100'].idxmax()]
     recommendations.append({
-        'type': '⚠️ Matchup to Avoid',
+        'type': 'Matchup to Avoid',
         'recommendation': f"{worst_overall['Pitcher']} vs {worst_overall['Hitter']}",
         'details': f"RV/100: {worst_overall['RV/100']:.2f} (Strong hitter advantage)"
     })
@@ -1222,7 +1227,7 @@ def create_optimal_usage_recommendations(matchups_df, pitcher_summaries):
         if len(good_matchups) >= 2:
             hitters_list = ", ".join(good_matchups['Hitter'].tolist())
             recommendations.append({
-                'type': f'📍 {pitcher} Entry Spots',
+                'type': f'{pitcher} Entry Spots',
                 'recommendation': f"Optimal vs: {hitters_list}",
                 'details': f"Avg RV/100: {good_matchups['RV/100'].mean():.2f}"
             })
@@ -1242,24 +1247,24 @@ def main():
     try:
         db_manager = get_database_manager()
     except Exception as e:
-        st.error(f"❌ Could not initialize database: {e}")
+        st.error(f"Could not initialize database: {e}")
         st.stop()
     
     # Sidebar info
     with st.sidebar:
-        st.header("🗄️ Database Info")
+        st.header("Database Info")
         if os.path.exists("baseball_data.db"):
             db_size = os.path.getsize("baseball_data.db") / 1024**2
             st.metric("Database Size", f"{db_size:.1f}MB")
-            st.success("✅ Database ready")
+            st.success("Database ready")
         
-        if st.button("🔄 Refresh Database"):
+        if st.button("Refresh Database"):
             if os.path.exists("baseball_data.db"):
                 os.remove("baseball_data.db")
             st.cache_resource.clear()
             st.rerun()
         
-        st.header("🎯 MAC Algorithm Steps")
+        st.header("MAC Algorithm Steps")
         st.markdown("""
         **EXACT SAME as MAC_module:**
         1. **Load & Clean Data** - Clean numeric columns
@@ -1270,7 +1275,7 @@ def main():
         6. **Matchup Analysis** - Usage-weighted statistics
         """)
         
-        st.header("📊 Analysis Parameters")
+        st.header("Analysis Parameters")
         st.metric("Distance Threshold", f"{distance_threshold}")
         st.metric("Scanning Features", "6 features")
         st.metric("Clustering Features", "4 features")
@@ -1281,7 +1286,7 @@ def main():
             available_pitchers = db_manager.get_pitchers()
             available_batters = db_manager.get_batters()
         except Exception as e:
-            st.error(f"❌ Error loading players: {e}")
+            st.error(f"Error loading players: {e}")
             st.stop()
     
     # Display stats
@@ -1313,7 +1318,7 @@ def main():
         )
         
         # NEW: Hot Arms selection
-        st.subheader("🔥 Hot Arms Available")
+        st.subheader("Hot Arms Available")
         hot_arms = st.multiselect(
             "Select available pitchers for game strategy:",
             available_pitchers,
@@ -1323,7 +1328,7 @@ def main():
     
     # Analysis
     # Analysis button - ONLY runs analysis and stores data
-    if st.button("🚀 Run Complete MAC Analysis", type="primary", use_container_width=True):
+    if st.button("Run Complete MAC Analysis", type="primary", use_container_width=True):
         if not selected_pitcher or not selected_hitters:
             st.warning("Please select both a pitcher and at least one hitter.")
         else:
@@ -1349,19 +1354,19 @@ def main():
                     ].copy()
                     st.session_state.movement_df = movement_df
                     
-                    st.success("✅ Analysis complete! Results displayed below.")
+                    st.success("Analysis complete! Results displayed below.")
                 else:
-                    st.warning("❌ No sufficient data found for this matchup.")
+                    st.warning("No sufficient data found for this matchup.")
                     
             except Exception as e:
-                st.error(f"❌ Analysis failed: {e}")
+                st.error(f"Analysis failed: {e}")
                 import traceback
                 st.error(traceback.format_exc())
     
     # Display persistent results - OUTSIDE button block
     if 'summary_df' in st.session_state and 'breakdown_df' in st.session_state:
         st.markdown("---")
-        st.header("📊 Results")
+        st.header("Results")
         
         # Main visualization
         fig = create_comprehensive_visualization(
@@ -1375,21 +1380,21 @@ def main():
         col1, col2 = st.columns(2)
         
         with col1:
-            st.subheader("📈 Summary Statistics")
+            st.subheader("Summary Statistics")
             st.dataframe(st.session_state.summary_df, use_container_width=True, hide_index=True)
         
         with col2:
-            st.subheader("🎯 Pitch Group Breakdown")
+            st.subheader("Pitch Group Breakdown")
             st.dataframe(st.session_state.breakdown_df, use_container_width=True, hide_index=True)
         
         # Movement chart
-        st.subheader("🌪️ Pitch Movement Chart")
+        st.subheader("Pitch Movement Chart")
         movement_fig = create_movement_chart(st.session_state.movement_df)
         st.plotly_chart(movement_fig, use_container_width=True)
     
     # Zone analysis - also outside button block
     if 'movement_df' in st.session_state and 'selected_hitters' in st.session_state:
-        st.subheader("🎯 Zone-Level Heat Map Analysis")
+        st.subheader("Zone-Level Heat Map Analysis")
         selected_hitter_heatmap = st.selectbox(
             "Select hitter for detailed zone analysis:",
             st.session_state.selected_hitters,
@@ -1428,16 +1433,16 @@ def main():
                 coverage_matrix.loc[hitter, group] = len(matches)
         
         st.dataframe(coverage_matrix.astype(int), use_container_width=True)
-        st.info("📊 Coverage Matrix shows pitch counts within distance threshold for each hitter vs pitch group combination")
+        st.info("Coverage Matrix shows pitch counts within distance threshold for each hitter vs pitch group combination")
         
         # Downloads
-        st.subheader("💾 Download Results")
+        st.subheader("Download Results")
         col1, col2, col3 = st.columns(3)
         
         with col1:
             csv_summary = st.session_state.summary_df.to_csv(index=False)
             st.download_button(
-                "📥 Download Summary",
+                "Download Summary",
                 csv_summary,
                 f"{st.session_state.selected_pitcher.replace(', ', '_')}_summary.csv",
                 "text/csv"
@@ -1446,7 +1451,7 @@ def main():
         with col2:
             csv_breakdown = st.session_state.breakdown_df.to_csv(index=False)
             st.download_button(
-                "📥 Download Breakdown",
+                "Download Breakdown",
                 csv_breakdown,
                 f"{st.session_state.selected_pitcher.replace(', ', '_')}_breakdown.csv",
                 "text/csv"
@@ -1455,7 +1460,7 @@ def main():
         with col3:
             csv_movement = st.session_state.movement_df.to_csv(index=False)
             st.download_button(
-                "📥 Download Pitch Data",
+                "Download Pitch Data",
                 csv_movement,
                 f"{st.session_state.selected_pitcher.replace(', ', '_')}_pitch_level.csv",
                 "text/csv"
@@ -1498,9 +1503,9 @@ def main():
     # Hot Arms Strategic Analysis
     if hot_arms and 'selected_hitters' in st.session_state:
         st.markdown("---")
-        st.subheader("🔥 Hot Arms Strategic Analysis")
+        st.subheader("Hot Arms Strategic Analysis")
         
-        if st.button("🎯 Analyze Hot Arms Strategy", type="secondary"):
+        if st.button("Analyze Hot Arms Strategy", type="secondary"):
             with st.spinner("Analyzing all pitcher-hitter matchups..."):
                 matchups_df, pitcher_summaries = analyze_hot_arms_strategy(
                     hot_arms, st.session_state.selected_hitters, db_manager
@@ -1510,7 +1515,7 @@ def main():
                     # Store in session state
                     st.session_state.hot_arms_matchups = matchups_df
                     st.session_state.hot_arms_summaries = pitcher_summaries
-                    st.success("✅ Hot Arms analysis complete!")
+                    st.success("Hot Arms analysis complete!")
                 else:
                     st.warning("No data available for Hot Arms analysis")
 
@@ -1518,7 +1523,7 @@ def main():
     if 'hot_arms_matchups' in st.session_state and 'hot_arms_summaries' in st.session_state:
         
         # Pitcher Matchup Rankings with color coding
-        st.subheader("🏆 Pitcher Matchup Rankings")
+        st.subheader("Pitcher Matchup Rankings")
         st.write("**Color Guide:** 🟢 Great for Pitcher | 🟡 Neutral | 🔴 Bad for Pitcher")
         
         styled_rankings = create_matchup_rankings_table(
@@ -1529,7 +1534,7 @@ def main():
             st.dataframe(styled_rankings, use_container_width=True)
         
         # Strategic Recommendations
-        st.subheader("📍 Strategic Recommendations")
+        st.subheader("Strategic Recommendations")
         recommendations = create_optimal_usage_recommendations(
             st.session_state.hot_arms_matchups, 
             st.session_state.hot_arms_summaries
@@ -1551,7 +1556,7 @@ def main():
                         st.info(f"**{rec['type']}**\n\n{rec['recommendation']}\n\n*{rec['details']}*")
         
         # Summary Statistics
-        st.subheader("📊 Hot Arms Summary")
+        st.subheader("Hot Arms Summary")
         summary_data = []
         for pitcher, stats in st.session_state.hot_arms_summaries.items():
             summary_data.append({
