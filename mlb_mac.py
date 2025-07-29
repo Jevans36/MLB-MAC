@@ -1058,11 +1058,12 @@ def create_movement_chart(movement_df):
     
     x_min = movement_df_filtered["HorzBreak"].min() - 2
     x_max = movement_df_filtered["HorzBreak"].max() + 2
+
     
     fig.update_layout(
         title="Pitch Movement (HorzBreak vs. IndVertBreak)",
-        xaxis=dict(title="Horizontal Break", range=[x_min, x_max]),  # Dynamic range
-        yaxis=dict(title="Induced Vertical Break", range=[-30, 30], scaleanchor="x", scaleratio=1),
+        xaxis=dict(title="Horizontal Break"),  # Let it auto-scale
+        yaxis=dict(title="Induced Vertical Break"),  # Let it auto-scale
         template="simple_white",
         height=600,
         width=1000
