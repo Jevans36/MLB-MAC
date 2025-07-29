@@ -430,15 +430,18 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
                 # Clean exit speed and angle columns (EXACT SAME)
                 group_pitches['launch_speed'] = clean_numeric_column(group_pitches['launch_speed'])
                 group_pitches['launch_angle'] = clean_numeric_column(group_pitches['launch_angle'])
+
                 
-                exit_velo = group_pitches["launch_speed"].mean()
-                launch_angle = group_pitches["launch_angle"].mean()
+
                 
                 balls_in_play = group_pitches[group_pitches["Ishit_into_play"]]
+                balls_with_ev = balls_in_play[balls_in_play["launch_speed"].notna()]
+                exit_velo = balls_with_ev["launch_speed"].mean() if len(balls_with_ev) > 0 else np.nan
+                launch_angle = group_pitches["launch_angle"].mean()
                 num_ground_balls = (balls_in_play["launch_angle"] < 10).sum()
                 gb_percent = round(100 * num_ground_balls / len(balls_in_play), 1) if len(balls_in_play) > 0 else np.nan
-                num_hard_hits = (balls_in_play["launch_speed"] >= 95).sum()
-                hh_percent = round(100 * num_hard_hits / len(balls_in_play), 1) if len(balls_in_play) > 0 else np.nan
+                num_hard_hits = (balls_with_ev["launch_speed"] >= 95).sum()
+                hh_percent = round(100 * num_hard_hits / len(balls_with_ev), 1) if len(balls_with_ev) > 0 else np.nan
                 
                 rv_per_100 = 100 * total_run_value / total_pitches if total_pitches > 0 else 0
                 weighted_stats.append(usage * rv_per_100)
@@ -473,8 +476,8 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
                 total_bips += len(balls_in_play)
                 total_hits += hits
                 total_outs += outs
-                if not np.isnan(exit_velo):
-                    total_ev_sum += exit_velo * len(balls_in_play)
+                if not np.isnan(exit_velo) and len(balls_with_ev) > 0:
+                    total_ev_sum += exit_velo * len(balls_with_ev)
                 if not np.isnan(launch_angle):
                     total_la_sum += launch_angle * len(balls_in_play)
                 if not np.isnan(num_hard_hits):
@@ -701,14 +704,16 @@ def run_silent_mac_analysis(pitcher_name, target_hitters, db_manager):
             group_pitches['launch_speed'] = clean_numeric_column(group_pitches['launch_speed'])
             group_pitches['launch_angle'] = clean_numeric_column(group_pitches['launch_angle'])
             
-            exit_velo = group_pitches["launch_speed"].mean()
+
             launch_angle = group_pitches["launch_angle"].mean()
             
             balls_in_play = group_pitches[group_pitches["Ishit_into_play"]]
+            balls_with_ev = balls_in_play[balls_in_play["launch_speed"].notna()]
+            exit_velo = balls_with_ev["launch_speed"].mean() if len(balls_with_ev) > 0 else np.nan
             num_ground_balls = (balls_in_play["launch_angle"] < 10).sum()
             gb_percent = round(100 * num_ground_balls / len(balls_in_play), 1) if len(balls_in_play) > 0 else np.nan
-            num_hard_hits = (balls_in_play["launch_speed"] >= 95).sum()
-            hh_percent = round(100 * num_hard_hits / len(balls_in_play), 1) if len(balls_in_play) > 0 else np.nan
+            num_hard_hits = (balls_with_ev["launch_speed"] >= 95).sum()
+            hh_percent = round(100 * num_hard_hits / len(balls_with_ev), 1) if len(balls_with_ev) > 0 else np.nan
             
             rv_per_100 = 100 * total_run_value / total_pitches if total_pitches > 0 else 0
             weighted_stats.append(usage * rv_per_100)
@@ -737,8 +742,8 @@ def run_silent_mac_analysis(pitcher_name, target_hitters, db_manager):
             total_bips += len(balls_in_play)
             total_hits += hits
             total_outs += outs
-            if not np.isnan(exit_velo):
-                total_ev_sum += exit_velo * len(balls_in_play)
+            if not np.isnan(exit_velo) and len(balls_with_ev) > 0:
+                total_ev_sum += exit_velo * len(balls_with_ev)
             if not np.isnan(launch_angle):
                 total_la_sum += launch_angle * len(balls_in_play)
             if not np.isnan(num_hard_hits):
