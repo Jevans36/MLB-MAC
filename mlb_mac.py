@@ -873,12 +873,42 @@ def compute_heatmap_stats(df, metric_col, min_samples=3):
         st.error(f"Heatmap error: {e}")
         return None, None, None
 
+heatmap_pitch_groups = {
+            'Four-Seam': 'Fastball',
+            '4-Seam Fastball': 'Fastball',
+            'Fastball': 'Fastball',
+            'FourSeamFastBall': 'Fastball',
+            'TwoSeamFastBall': 'Fastball',
+            'Sinker': 'Fastball',
+            'Slider': 'Breaking',
+            'Cutter': 'Fastball',
+            'Curveball': 'Breaking',
+            'Slurve': 'Breaking',
+            'Knuckle Curve': 'Breaking',
+            'Sweeper': 'Breaking',
+            'Slow Curve': 'Breaking',
+            'Eephus': 'Breaking',
+            'Splitter': 'Offspeed',
+            'Split-Finger': 'Offspeed',
+            'Forkball': 'Offspeed',
+            'ChangeUp': 'Offspeed',
+            'Changeup': 'Offspeed',
+            'Knuckleball': 'Breaking',
+            'Screwball': 'Offspeed'
+        }
+
 def generate_zone_heatmap(df, selected_hitter):
-    """Generate zone-level heatmap for a specific hitter"""
+    """Generate zone-level heatmap for a specific hitter using 3-category system"""
     fig, axes = plt.subplots(3, 3, figsize=(15, 12))
     metrics = [("WhiffFlag", "Whiff Rate"), ("HardHitFlag", "Hard Hit Rate"), ("wOBA_result", "wOBA")]
-    pitch_groups = ["Fastball", "Sinker", "Cutter", "Slider", "Sweeper", "Curveball", "Splitter", "Changeup", "Knuckleball", "Screwball"]
-
+    
+    # Use simplified 3-category system for heatmaps
+    pitch_groups = ["Fastball", "Breaking", "Offspeed"]
+    
+    # Create simplified pitch group column for heatmap
+    df = df.copy()  # Don't modify the original dataframe
+    df["HeatmapPitchGroup"] = df["PitchGroup"].map(heatmap_pitch_groups).fillna("Unknown")
+    
     # Add flags to dataframe
     df["WhiffFlag"] = (df["description"] == "swinging_strike").astype(int)
     df["HardHitFlag"] = ((df["launch_speed"] >= 95) & df["launch_speed"].notna()).astype(int)
@@ -886,7 +916,7 @@ def generate_zone_heatmap(df, selected_hitter):
     for i, (metric, title) in enumerate(metrics):
         for j, group in enumerate(pitch_groups):
             ax = axes[i, j]
-            subset = df[df["PitchGroup"] == group].copy()
+            subset = df[df["HeatmapPitchGroup"] == group].copy()
 
             if len(subset) == 0:
                 ax.text(0, 2.75, "No Data", ha='center', va='center', fontsize=12)
@@ -948,7 +978,7 @@ def generate_zone_heatmap(df, selected_hitter):
             if i == 2:
                 ax.set_xlabel(group, fontsize=12, fontweight='bold')
 
-    fig.suptitle(f"Zone-Level Heat Maps for {selected_hitter}", fontsize=16, fontweight='bold', y=0.98)
+    fig.suptitle(f"Zone-Level Heat Maps for {selected_hitter} (3-Category System)", fontsize=16, fontweight='bold', y=0.98)
     plt.tight_layout(rect=[0, 0, 1, 0.96])
 
     # Convert to base64 for Streamlit
@@ -1447,22 +1477,29 @@ def main():
     # Coverage analysis and downloads - also outside button block
     if 'movement_df' in st.session_state and 'summary_df' in st.session_state:
         # Coverage analysis
-        st.subheader("📈 Coverage Matrix")
-        coverage_matrix = pd.DataFrame(
-            index=st.session_state.selected_hitters, 
-            columns=["Fastball", "Sinker", "Cutter", "Slider", "Sweeper", "Curveball", "Splitter", "Changeup", "Knuckleball", "Screwball"]
-        ).fillna(0)
-        
-        for hitter in st.session_state.selected_hitters:
-            for group in ["Fastball", "Sinker", "Cutter", "Slider", "Sweeper", "Curveball", "Splitter", "Changeup", "Knuckleball", "Screwball"]:
-                matches = st.session_state.movement_df[
-                    (st.session_state.movement_df["batter_name"] == hitter) &
-                    (st.session_state.movement_df["PitchGroup"] == group)
-                ]
-                coverage_matrix.loc[hitter, group] = len(matches)
-        
-        st.dataframe(coverage_matrix.astype(int), use_container_width=True)
-        st.info("Coverage Matrix shows pitch counts within distance threshold for each hitter vs pitch group combination")
+    # Replace lines 745-760 with this dynamic approach:
+    
+    # Coverage analysis - DYNAMIC VERSION
+    st.subheader("Coverage Matrix")
+    
+    # Get actual pitch groups from the movement data (dynamic)
+    actual_pitch_groups = sorted(st.session_state.movement_df["PitchGroup"].unique())
+    
+    coverage_matrix = pd.DataFrame(
+        index=st.session_state.selected_hitters, 
+        columns=actual_pitch_groups
+    ).fillna(0)
+    
+    for hitter in st.session_state.selected_hitters:
+        for group in actual_pitch_groups:  # Use actual groups instead of hardcoded
+            matches = st.session_state.movement_df[
+                (st.session_state.movement_df["batter_name"] == hitter) &
+                (st.session_state.movement_df["PitchGroup"] == group)
+            ]
+            coverage_matrix.loc[hitter, group] = len(matches)
+    
+    st.dataframe(coverage_matrix.astype(int), use_container_width=True)
+    st.info("Coverage Matrix shows pitch counts within distance threshold for each hitter vs pitch group combination")
         
         # Downloads
         st.subheader("Download Results")
