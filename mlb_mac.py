@@ -217,13 +217,31 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
     
     st.info("**MAC Analysis Pipeline Started**")
     
-    # === STEP 1: Get Data (EXACT SAME as MAC_module) ===
+   # === STEP 1: Get Data + Filter by Handedness ===
     with st.spinner("Loading analysis data..."):
         df = db_manager.get_analysis_data(pitcher_name, target_hitters)
         
         if df.empty:
             st.error("No data found in dataset")
             return None, None, None
+        
+        # NEW: Filter by pitcher handedness right here
+        if 'p_throws' in df.columns:
+            # Get the input pitcher's handedness
+            pitcher_data = df[df["player_name"] == pitcher_name]
+            if not pitcher_data.empty and not pitcher_data['p_throws'].isna().all():
+                pitcher_throws = pitcher_data['p_throws'].mode().iloc[0]  # Most common value
+                
+                # Filter entire dataset to only include same handedness
+                original_count = len(df)
+                df = df[df['p_throws'] == pitcher_throws].copy()
+                filtered_count = len(df)
+                
+                st.info(f"🤚 Filtered for {pitcher_throws}-handed pitchers only: {original_count:,} → {filtered_count:,} pitches")
+            else:
+                st.warning("⚠️ No handedness data found - proceeding without handedness filter")
+        else:
+            st.warning("⚠️ p_throws column not found - proceeding without handedness filter")
         
         # Filter for pitcher's data only for clustering (EXACT SAME)
         pitcher_pitches = df[df["player_name"] == pitcher_name].copy()
@@ -558,16 +576,40 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
 def run_silent_mac_analysis(pitcher_name, target_hitters, db_manager):
     """Silent MAC analysis - no verbose output for Hot Arms batch processing"""
     
-    # === STEP 1: Get Data ===
-    df = db_manager.get_analysis_data(pitcher_name, target_hitters)
+
+    # === STEP 1: Get Data + Filter by Handedness ===
+    with st.spinner("Loading analysis data..."):
+        df = db_manager.get_analysis_data(pitcher_name, target_hitters)
+        
+        if df.empty:
+            st.error("No data found in dataset")
+            return None, None, None
+        
+        # NEW: Filter by pitcher handedness right here
+        if 'p_throws' in df.columns:
+            # Get the input pitcher's handedness
+            pitcher_data = df[df["player_name"] == pitcher_name]
+            if not pitcher_data.empty and not pitcher_data['p_throws'].isna().all():
+                pitcher_throws = pitcher_data['p_throws'].mode().iloc[0]  # Most common value
+                
+                # Filter entire dataset to only include same handedness
+                original_count = len(df)
+                df = df[df['p_throws'] == pitcher_throws].copy()
+                filtered_count = len(df)
+                
+                st.info(f"🤚 Filtered for {pitcher_throws}-handed pitchers only: {original_count:,} → {filtered_count:,} pitches")
+            else:
+                st.warning("⚠️ No handedness data found - proceeding without handedness filter")
+        else:
+            st.warning("⚠️ p_throws column not found - proceeding without handedness filter")
+        
+        # Filter for pitcher's data only for clustering (EXACT SAME)
+        pitcher_pitches = df[df["player_name"] == pitcher_name].copy()
+        if pitcher_pitches.empty:
+            st.error(f"No pitches found for pitcher: {pitcher_name}")
+            return None, None, None
     
-    if df.empty:
-        return None, None, None
-    
-    # Filter for pitcher's data only for clustering
-    pitcher_pitches = df[df["player_name"] == pitcher_name].copy()
-    if pitcher_pitches.empty:
-        return None, None, None
+    st.success(f"Data loaded: {len(df):,} total rows, {len(pitcher_pitches):,} pitcher rows")
     
     # === STEP 2: Clean Numeric Columns ===
     numeric_columns = [
