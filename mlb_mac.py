@@ -1479,27 +1479,27 @@ def main():
         # Coverage analysis
     # Replace lines 745-760 with this dynamic approach:
     
-    # Coverage analysis - DYNAMIC VERSION
-    st.subheader("Coverage Matrix")
-    
-    # Get actual pitch groups from the movement data (dynamic)
-    actual_pitch_groups = sorted(st.session_state.movement_df["PitchGroup"].unique())
-    
-    coverage_matrix = pd.DataFrame(
-        index=st.session_state.selected_hitters, 
-        columns=actual_pitch_groups
-    ).fillna(0)
-    
-    for hitter in st.session_state.selected_hitters:
-        for group in actual_pitch_groups:  # Use actual groups instead of hardcoded
-            matches = st.session_state.movement_df[
-                (st.session_state.movement_df["batter_name"] == hitter) &
-                (st.session_state.movement_df["PitchGroup"] == group)
-            ]
-            coverage_matrix.loc[hitter, group] = len(matches)
-    
-    st.dataframe(coverage_matrix.astype(int), use_container_width=True)
-    st.info("Coverage Matrix shows pitch counts within distance threshold for each hitter vs pitch group combination")
+        # Coverage analysis - DYNAMIC VERSION
+        st.subheader("Coverage Matrix")
+        
+        # Get actual pitch groups from the movement data (dynamic)
+        actual_pitch_groups = sorted(st.session_state.movement_df["PitchGroup"].unique())
+        
+        coverage_matrix = pd.DataFrame(
+            index=st.session_state.selected_hitters, 
+            columns=actual_pitch_groups
+        ).fillna(0)
+        
+        for hitter in st.session_state.selected_hitters:
+            for group in actual_pitch_groups:  # Use actual groups instead of hardcoded
+                matches = st.session_state.movement_df[
+                    (st.session_state.movement_df["batter_name"] == hitter) &
+                    (st.session_state.movement_df["PitchGroup"] == group)
+                ]
+                coverage_matrix.loc[hitter, group] = len(matches)
+        
+        st.dataframe(coverage_matrix.astype(int), use_container_width=True)
+        st.info("Coverage Matrix shows pitch counts within distance threshold for each hitter vs pitch group combination")
         
         # Downloads
         st.subheader("Download Results")
