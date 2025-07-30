@@ -34,7 +34,19 @@ st.set_page_config(
 )
 
 # Constants - EXACT SAME as MAC_module
-color_dict = {"Fastball": "red", "Breaking": "blue", "Offspeed": "green", "Unknown": "gray"}
+color_dict = {
+    "Fastball": "red",
+    "Sinker": "orange",
+    "Cutter": "brown",
+    "Slider": "yellow",
+    "Sweeper": "gold",
+    "Curveball": "blue",
+    "Changeup": "green",
+    "Splitter": "teal",
+    "Knuckleball": "gray",
+    "Screwball": "purple"
+}
+
 distance_threshold = 0.6
 strike_zone = {"top": 3.3775, "bottom": 1.5, "left": -0.83083, "right": 0.83083}
 swing_calls = ["swinging_strike", "foul", "hit_into_play"]
@@ -310,23 +322,23 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
             '4-Seam Fastball': 'Fastball',
             'Fastball': 'Fastball',
             'FourSeamFastBall': 'Fastball',
-            'TwoSeamFastBall': 'Fastball',
-            'Sinker': 'Fastball',
-            'Slider': 'Breaking',
-            'Cutter': 'Breaking',
-            'Curveball': 'Breaking',
-            'Slurve': 'Breaking',
-            'Knuckle Curve': 'Breaking',
-            'Sweeper': 'Breaking',
-            'Slow Curve': 'Breaking',
-            'Eephus': 'Breaking',
-            'Splitter': 'Offspeed',
-            'Split-Finger': 'Offspeed',
-            'Forkball': 'Offspeed',
-            'ChangeUp': 'Offspeed',
-            'Changeup': 'Offspeed',
-            'Knuckleball': 'Offspeed',
-            'Screwball': 'Offspeed'
+            'TwoSeamFastBall': 'Sinker',
+            'Sinker': 'Sinker',
+            'Slider': 'Slider',
+            'Cutter': 'Cutter',
+            'Curveball': 'Curveball',
+            'Slurve': 'Curveball',
+            'Knuckle Curve': 'Curveball',
+            'Sweeper': 'Sweeper',
+            'Slow Curve': 'Curveball',
+            'Eephus': 'Curveball',
+            'Splitter': 'Splitter',
+            'Split-Finger': 'Splitter',
+            'Forkball': 'Splitter',
+            'ChangeUp': 'Changeup',
+            'Changeup': 'Changeup',
+            'Knuckleball': 'Knuckleball',
+            'Screwball': 'Screwball'
         }
         
         # Handle missing pitch_name if any (EXACT SAME)
@@ -619,11 +631,28 @@ def run_silent_mac_analysis(pitcher_name, target_hitters, db_manager):
     
     # === STEP 7: Assign PitchGroup using pitch_name majority ===
     autopitchtype_to_group = {
-        'Four-Seam': 'Fastball', 'Fastball': 'Fastball', 'FourSeamFastBall': 'Fastball',
-        'TwoSeamFastBall': 'Fastball', 'Sinker': 'Fastball', 'Slider': 'Breaking',
-        'Cutter': 'Breaking', 'Curveball': 'Breaking', 'Sweeper': 'Breaking',
-        'Changeup': 'Offspeed', 'Splitter': 'Offspeed', 'ChangeUp': 'Offspeed'
-    }
+            'Four-Seam': 'Fastball',
+            '4-Seam Fastball': 'Fastball',
+            'Fastball': 'Fastball',
+            'FourSeamFastBall': 'Fastball',
+            'TwoSeamFastBall': 'Sinker',
+            'Sinker': 'Sinker',
+            'Slider': 'Slider',
+            'Cutter': 'Cutter',
+            'Curveball': 'Curveball',
+            'Slurve': 'Curveball',
+            'Knuckle Curve': 'Curveball',
+            'Sweeper': 'Sweeper',
+            'Slow Curve': 'Curveball',
+            'Eephus': 'Curveball',
+            'Splitter': 'Splitter',
+            'Split-Finger': 'Splitter',
+            'Forkball': 'Splitter',
+            'ChangeUp': 'Changeup',
+            'Changeup': 'Changeup',
+            'Knuckleball': 'Knuckleball',
+            'Screwball': 'Screwball'
+        }
     
     pitcher_pitches = pitcher_pitches.dropna(subset=["pitch_name"])
     
@@ -848,7 +877,7 @@ def generate_zone_heatmap(df, selected_hitter):
     """Generate zone-level heatmap for a specific hitter"""
     fig, axes = plt.subplots(3, 3, figsize=(15, 12))
     metrics = [("WhiffFlag", "Whiff Rate"), ("HardHitFlag", "Hard Hit Rate"), ("wOBA_result", "wOBA")]
-    pitch_groups = ["Fastball", "Breaking", "Offspeed"]
+    pitch_groups = ["Fastball", "Sinker", "Cutter", "Slider", "Sweeper", "Curveball", "Splitter", "Changeup", "Knuckleball", "Screwball"]
 
     # Add flags to dataframe
     df["WhiffFlag"] = (df["description"] == "swinging_strike").astype(int)
@@ -1019,7 +1048,7 @@ def create_comprehensive_visualization(summary_df, breakdown_df, pitcher_name):
     
     fig.update_layout(
         height=700,
-        title=f"Expected Matchup RV/100 + Hitter Summary: {pitcher_name} - - - Note that the black indicates expected weighted performance and the red, blue, and green dots represent fastballs, breaking balls, and offspeed, respectively",
+        title=f"Expected Matchup RV/100 + Hitter Summary: {pitcher_name} - - - Split By Pitch Type",
         yaxis_title="Better for Pitchers <------    RV/100   ------> Better for Hitters",
         template="simple_white",
         xaxis=dict(
@@ -1421,11 +1450,11 @@ def main():
         st.subheader("📈 Coverage Matrix")
         coverage_matrix = pd.DataFrame(
             index=st.session_state.selected_hitters, 
-            columns=["Fastball", "Breaking", "Offspeed"]
+            columns=["Fastball", "Sinker", "Cutter", "Slider", "Sweeper", "Curveball", "Splitter", "Changeup", "Knuckleball", "Screwball"]
         ).fillna(0)
         
         for hitter in st.session_state.selected_hitters:
-            for group in ["Fastball", "Breaking", "Offspeed"]:
+            for group in ["Fastball", "Sinker", "Cutter", "Slider", "Sweeper", "Curveball", "Splitter", "Changeup", "Knuckleball", "Screwball"]:
                 matches = st.session_state.movement_df[
                     (st.session_state.movement_df["batter_name"] == hitter) &
                     (st.session_state.movement_df["PitchGroup"] == group)
