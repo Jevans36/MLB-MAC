@@ -898,7 +898,7 @@ heatmap_pitch_groups = {
         }
 
 def generate_zone_heatmap(df, selected_hitter):
-    """Generate zone-level heatmap for a specific hitter using 3-category system"""
+    """Generate zone-level heatmap for a specific hitter using 3 group generalization"""
     fig, axes = plt.subplots(3, 3, figsize=(15, 12))
     metrics = [("WhiffFlag", "Whiff Rate"), ("HardHitFlag", "Hard Hit Rate"), ("wOBA_result", "wOBA")]
     
@@ -978,7 +978,7 @@ def generate_zone_heatmap(df, selected_hitter):
             if i == 2:
                 ax.set_xlabel(group, fontsize=12, fontweight='bold')
 
-    fig.suptitle(f"Zone-Level Heat Maps for {selected_hitter} (3-Category System)", fontsize=16, fontweight='bold', y=0.98)
+    fig.suptitle(f"Heat Maps for {selected_hitter} (3-Group Generalization)", fontsize=16, fontweight='bold', y=0.98)
     plt.tight_layout(rect=[0, 0, 1, 0.96])
 
     # Convert to base64 for Streamlit
