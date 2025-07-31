@@ -317,7 +317,7 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
         
         # Step 2: Run BIC loop to find optimal number of clusters (EXACT SAME)
         bic_scores = []
-        ks = range(1, 10)
+        ks = range(4, 10)
         for k in ks:
             gmm = GaussianMixture(n_components=k, random_state=42)
             gmm.fit(X_cluster)
