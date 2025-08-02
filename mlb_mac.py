@@ -577,14 +577,7 @@ def run_silent_mac_analysis(pitcher_name, target_hitters, db_manager):
     """Silent MAC analysis - no verbose output for Hot Arms batch processing"""
     
 
-    # === STEP 1: Get Data + Filter by Handedness ===
-    with st.spinner("Loading analysis data..."):
-        df = db_manager.get_analysis_data(pitcher_name, target_hitters)
-        
-        if df.empty:
-            st.error("No data found in dataset")
-            return None, None, None
-        
+
         # NEW: Filter by pitcher handedness right here
         if 'p_throws' in df.columns:
             # Get the input pitcher's handedness
@@ -597,11 +590,7 @@ def run_silent_mac_analysis(pitcher_name, target_hitters, db_manager):
                 df = df[df['p_throws'] == pitcher_throws].copy()
                 filtered_count = len(df)
                 
-                st.info(f"🤚 Filtered for {pitcher_throws}-handed pitchers only: {original_count:,} → {filtered_count:,} pitches")
-            else:
-                st.warning("⚠️ No handedness data found - proceeding without handedness filter")
-        else:
-            st.warning("⚠️ p_throws column not found - proceeding without handedness filter")
+
         
         # Filter for pitcher's data only for clustering (EXACT SAME)
         pitcher_pitches = df[df["player_name"] == pitcher_name].copy()
