@@ -237,11 +237,11 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
                 df = df[df['p_throws'] == pitcher_throws].copy()
                 filtered_count = len(df)
                 
-                st.info(f"🤚 Filtered for {pitcher_throws}-handed pitchers only: {original_count:,} → {filtered_count:,} pitches")
+                st.info(f"Filtered for {pitcher_throws}-handed pitchers only: {original_count:,} → {filtered_count:,} pitches")
             else:
-                st.warning("⚠️ No handedness data found - proceeding without handedness filter")
+                st.warning("No handedness data found - proceeding without handedness filter")
         else:
-            st.warning("⚠️ p_throws column not found - proceeding without handedness filter")
+            st.warning("p_throws column not found - proceeding without handedness filter")
         
         # Filter for pitcher's data only for clustering (EXACT SAME)
         pitcher_pitches = df[df["player_name"] == pitcher_name].copy()
@@ -1429,7 +1429,7 @@ def main():
             st.warning("Please select both a pitcher and at least one hitter.")
         else:
             st.markdown("---")
-            st.header("🔬 MAC Analysis Pipeline")
+            st.header("MAC Analysis Pipeline")
             
             try:
                 summary_df, breakdown_df, full_df = run_complete_mac_analysis(
