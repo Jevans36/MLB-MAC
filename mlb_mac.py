@@ -579,7 +579,7 @@ def run_silent_mac_analysis(pitcher_name, target_hitters, db_manager):
 
 
         # NEW: Filter by pitcher handedness right here
-        if 'p_throws' in df.columns:
+    if 'p_throws' in df.columns:
             # Get the input pitcher's handedness
             pitcher_data = df[df["player_name"] == pitcher_name]
             if not pitcher_data.empty and not pitcher_data['p_throws'].isna().all():
