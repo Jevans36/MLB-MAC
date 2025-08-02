@@ -249,7 +249,7 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
             st.error(f"No pitches found for pitcher: {pitcher_name}")
             return None, None, None
     
-    st.success(f"Data loaded: {len(df):,} total rows, {len(pitcher_pitches):,} pitcher rows")
+    
     
     # === STEP 2: Clean Numeric Columns (EXACT SAME as MAC_module) ===
     with st.spinner("Cleaning numeric columns..."):
@@ -269,7 +269,7 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
             st.error(f"Missing required columns: {missing_cols}")
             return None, None, None
     
-    st.success("Numeric columns cleaned and validated")
+
     
     # USING CCBL R/OUT AS PREDEFINED - previously was FINDING r/out AFTER filtering for batter/pitcher matchup (invalid approach!)
     LEAGUE_R_OUT = 0.193
@@ -277,7 +277,7 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
     # Replace STEP 3 in run_complete_mac_analysis with this:
     def get_league_environment():
         """Return pre-calculated league environment"""
-        st.info(f"Using pre-calculated league environment: R/Out = {LEAGUE_R_OUT:.3f}")
+
         return LEAGUE_R_OUT
 
     r_out = get_league_environment()
@@ -295,7 +295,7 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
         else:
             df['wOBA_result'] = clean_numeric_column(df['wOBA_result'])
     
-    st.success("wOBA values assigned")
+
     
     # === STEP 5: Feature sets (EXACT SAME) ===
     scanning_features = ['release_speed', 'IndVertBreak', 'HorzBreak', 'release_spin_rate', 'release_pos_z', 'release_pos_x', 'arm_angle']
@@ -304,8 +304,8 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
     df = df.dropna(subset=scanning_features + ["player_name", "batter_name"])
     pitcher_pitches = pitcher_pitches.dropna(subset=scanning_features + ["player_name", "batter_name"])
     
-    st.info(f"Using clustering features: {clustering_features}")
-    st.info(f"Using scanning features: {scanning_features}")
+    #st.info(f"Using clustering features: {clustering_features}")
+    #st.info(f"Using scanning features: {scanning_features}")
     
     # === STEP 6: Scale features and cluster pitcher's arsenal (EXACT SAME) ===
     with st.spinner("Clustering pitcher's arsenal..."):
