@@ -576,29 +576,28 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
 def run_silent_mac_analysis(pitcher_name, target_hitters, db_manager):
     """Silent MAC analysis - no verbose output for Hot Arms batch processing"""
     
-
-
-        # NEW: Filter by pitcher handedness right here
-    if 'p_throws' in df.columns:
-            # Get the input pitcher's handedness
-            pitcher_data = df[df["player_name"] == pitcher_name]
-            if not pitcher_data.empty and not pitcher_data['p_throws'].isna().all():
-                pitcher_throws = pitcher_data['p_throws'].mode().iloc[0]  # Most common value
-                
-                # Filter entire dataset to only include same handedness
-                original_count = len(df)
-                df = df[df['p_throws'] == pitcher_throws].copy()
-                filtered_count = len(df)
-                
-
-        
-        # Filter for pitcher's data only for clustering (EXACT SAME)
-        pitcher_pitches = df[df["player_name"] == pitcher_name].copy()
-        if pitcher_pitches.empty:
-            st.error(f"No pitches found for pitcher: {pitcher_name}")
-            return None, None, None
+    # === STEP 1: Get Data + Filter by Handedness ===
+    df = db_manager.get_analysis_data(pitcher_name, target_hitters)
     
-    st.success(f"Data loaded: {len(df):,} total rows, {len(pitcher_pitches):,} pitcher rows")
+    if df.empty:
+        return None, None, None
+
+    # NEW: Filter by pitcher handedness right here (SILENT)
+    if 'p_throws' in df.columns:
+        # Get the input pitcher's handedness
+        pitcher_data = df[df["player_name"] == pitcher_name]
+        if not pitcher_data.empty and not pitcher_data['p_throws'].isna().all():
+            pitcher_throws = pitcher_data['p_throws'].mode().iloc[0]  # Most common value
+            
+            # Filter entire dataset to only include same handedness (NO STATUS MESSAGES)
+            df = df[df['p_throws'] == pitcher_throws].copy()
+
+    # Filter for pitcher's data only for clustering (EXACT SAME)
+    pitcher_pitches = df[df["player_name"] == pitcher_name].copy()
+    if pitcher_pitches.empty:
+        return None, None, None  # REMOVED st.error message
+    
+    # REMOVED: st.success message about data loading
     
     # === STEP 2: Clean Numeric Columns ===
     numeric_columns = [
@@ -771,7 +770,6 @@ def run_silent_mac_analysis(pitcher_name, target_hitters, db_manager):
             group_pitches['launch_speed'] = clean_numeric_column(group_pitches['launch_speed'])
             group_pitches['launch_angle'] = clean_numeric_column(group_pitches['launch_angle'])
             
-
             launch_angle = group_pitches["launch_angle"].mean()
             
             balls_in_play = group_pitches[group_pitches["Ishit_into_play"]]
@@ -864,7 +862,6 @@ def run_silent_mac_analysis(pitcher_name, target_hitters, db_manager):
         results.append(hitter_result)
     
     return pd.DataFrame(results), pd.DataFrame(group_breakdown), df
-
 
 def compute_heatmap_stats(df, metric_col, min_samples=3):
     """Compute heatmap statistics for zone analysis"""
