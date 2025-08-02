@@ -569,7 +569,7 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
             
             results.append(hitter_result)
     
-    st.success
+    st.success("MAC Complete")
     
     return pd.DataFrame(results), pd.DataFrame(group_breakdown), df
 
