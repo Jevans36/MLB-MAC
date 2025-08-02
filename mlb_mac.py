@@ -1322,7 +1322,7 @@ def create_optimal_usage_recommendations(matchups_df, pitcher_summaries):
         hitter_matchups = matchups_df[matchups_df['Hitter'] == hitter]
         best_pitcher = hitter_matchups.loc[hitter_matchups['RV/100'].idxmin()]
         recommendations.append({
-            'type': f'👤 Best vs {hitter}',
+            'type': f'Best vs {hitter}',
             'recommendation': f"{best_pitcher['Pitcher']}",
             'details': f"RV/100: {best_pitcher['RV/100']:.2f}"
         })
@@ -1641,7 +1641,7 @@ def main():
         
         # Pitcher Matchup Rankings with color coding
         st.subheader("Pitcher Matchup Rankings")
-        st.write("**Color Guide:** 🟢 Great for Pitcher | 🟡 Neutral | 🔴 Bad for Pitcher")
+        st.write("**Color Guide:** Green = Great for Pitcher | Yellow = Neutral | Red = Bad for Pitcher")
         
         styled_rankings = create_matchup_rankings_table(
             st.session_state.hot_arms_matchups, 
