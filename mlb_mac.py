@@ -1584,7 +1584,7 @@ def main():
             )
         
         # Analysis insights
-        st.subheader("🔍 Analysis Insights")
+        st.subheader("Analysis Insights")
         
         # Calculate insights
         best_matchup = st.session_state.summary_df.loc[st.session_state.summary_df["RV/100"].idxmin(), "batter_name"] if not st.session_state.summary_df.empty else "N/A"
