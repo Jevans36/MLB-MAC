@@ -1156,7 +1156,7 @@ def create_comprehensive_visualization(summary_df, breakdown_df, pitcher_name):
 
 
 def create_movement_chart(movement_df):
-    """Create pitch movement chart matching Dash app style"""
+    """Create pitch movement chart matching Dash app style - FIXED for square aspect"""
     movement_df_filtered = movement_df[
         (movement_df["HorzBreak"].between(-50, 50)) & 
         (movement_df["IndVertBreak"].between(-50, 50))
@@ -1181,19 +1181,28 @@ def create_movement_chart(movement_df):
                               "Spin Rate: %{customdata[3]} rpm<extra></extra>"
             ))
     
+    # KEY FIX: Remove width setting and autosize, let scaleanchor handle it
     fig.update_layout(
         title="Pitch Movement (HorzBreak vs. IndVertBreak)",
-        xaxis=dict(title="Horizontal Break", range=[-25, 25]),
-        yaxis=dict(title="Induced Vertical Break", range=[-25, 25], scaleanchor="x", scaleratio=1),
+        xaxis=dict(
+            title="Horizontal Break", 
+            range=[-25, 25],
+            constrain="domain"  # This helps maintain square aspect
+        ),
+        yaxis=dict(
+            title="Induced Vertical Break", 
+            range=[-25, 25], 
+            scaleanchor="x", 
+            scaleratio=1,
+            constraintoward="middle"  # Centers the square
+        ),
         template="simple_white",
         height=600,
-        width=600,
-        autosize=True,
-        margin=dict(l=50, r=50, t=80, b=50)  # Control margins for better square
+        # Remove width and autosize completely
+        margin=dict(l=80, r=80, t=80, b=80)  # Increase margins for better centering
     )
     
     return fig
-    # Move these functions OUTSIDE of main() - place them after create_movement_chart()
 
 # Update the analyze_hot_arms_strategy function to use the silent version:
 def analyze_hot_arms_strategy(hot_arms, selected_hitters, db_manager):
@@ -1491,7 +1500,7 @@ def main():
         # Movement chart
         st.subheader("Pitch Movement Chart")
         movement_fig = create_movement_chart(st.session_state.movement_df)
-        st.plotly_chart(movement_fig, use_container_width=True)
+        st.plotly_chart(movement_fig, use_container_width=False)
     
     # Zone analysis - also outside button block
     if 'movement_df' in st.session_state and 'selected_hitters' in st.session_state:
