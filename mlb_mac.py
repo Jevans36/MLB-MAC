@@ -1650,27 +1650,7 @@ def main():
         if styled_rankings is not None:
             st.dataframe(styled_rankings, use_container_width=True)
         
-        # Strategic Recommendations
-        st.subheader("Strategic Recommendations")
-        recommendations = create_optimal_usage_recommendations(
-            st.session_state.hot_arms_matchups, 
-            st.session_state.hot_arms_summaries
-        )
-        
-        # Display recommendations in organized columns
-        if recommendations:
-            for i in range(0, len(recommendations), 2):
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    if i < len(recommendations):
-                        rec = recommendations[i]
-                        st.info(f"**{rec['type']}**\n\n{rec['recommendation']}\n\n*{rec['details']}*")
-                
-                with col2:
-                    if i + 1 < len(recommendations):
-                        rec = recommendations[i + 1]
-                        st.info(f"**{rec['type']}**\n\n{rec['recommendation']}\n\n*{rec['details']}*")
+
         
         # Summary Statistics
         st.subheader("Hot Arms Summary")
