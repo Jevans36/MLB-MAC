@@ -93,7 +93,7 @@ class DatabaseManager:
             progress_bar.progress(50)
             
             # Download 2025 data
-            st.info("📂 Downloading 2025 MLB data from Dropbox...")
+            st.info("Downloading 2025 MLB data from Dropbox...")
             try:
                 ccbl_url = "https://www.dropbox.com/scl/fi/guwqimo1k39ivraj5widj/statcast_2025.parquet?rlkey=0afxm2kgtelcw1egs0owkumjx&st=e33wx95p&dl=1"
                 
