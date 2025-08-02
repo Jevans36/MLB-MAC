@@ -569,7 +569,7 @@ def run_complete_mac_analysis(pitcher_name, target_hitters, db_manager):
             
             results.append(hitter_result)
     
-    st.success("MAC Complete")
+
     
     return pd.DataFrame(results), pd.DataFrame(group_breakdown), df
 
@@ -1450,7 +1450,7 @@ def main():
                     ].copy()
                     st.session_state.movement_df = movement_df
                     
-                    st.success("Analysis complete! Results displayed below.")
+
                 else:
                     st.warning("No sufficient data found for this matchup.")
                     
