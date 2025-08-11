@@ -1364,10 +1364,10 @@ def main():
         st.markdown("""
         **EXACT SAME as MAC_module:**
         1. **Load & Clean Data** - Clean numeric columns
-        2. **wOBA Assignment** - Apply league weights
-        3. **Clustering** - GMM + BIC + KneeLocator
-        4. **Pitch Grouping** - pitch_name majority
-        5. **Similarity** - Euclidean distance calculation
+        2. **Cluster Input Pitcher** - Initial Clustering Method
+        3. **Distance Testing** - Euclidean Distance to find similar pitches
+        4. **Cluster ALL Similar Pitches** - Using the same clustering method
+        5. **Pitch Grouping** - Apply pitch tags using majority voting system
         6. **Matchup Analysis** - Usage-weighted statistics
         """)
         
