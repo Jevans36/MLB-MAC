@@ -74,17 +74,44 @@ class DatabaseManager:
         """Download and create database if it doesn't exist"""
         if not os.path.exists(self.db_path):
             st.info("Setting up database for first time use...")
-            self.create_database_from_dropbox()
+            self.create_database_from_gdrive()
     
-    def create_database_from_dropbox(self):
-        """Create database from both 2024 and 2025 MLB data (both from Dropbox)"""
+    def download_from_gdrive(self, file_id, session=None):
+        """Download file from Google Drive with large file handling"""
+        if session is None:
+            session = requests.Session()
+        
+        # Initial request to get download URL
+        url = f"https://drive.google.com/uc?export=download&id={file_id}"
+        
+        response = session.get(url, stream=True)
+        
+        # Handle large file confirmation
+        for key, value in response.cookies.items():
+            if key.startswith('download_warning'):
+                # Large file - need confirmation
+                confirm_url = f"https://drive.google.com/uc?export=download&confirm={value}&id={file_id}"
+                response = session.get(confirm_url, stream=True)
+                break
+        
+        return response
+    
+    def create_database_from_gdrive(self):
+        """Create database from both 2024 and 2025 MLB data (both from Google Drive)"""
         try:
             progress_bar = st.progress(0)
-            st.info("Downloading 2024 data from Dropbox...")
+            session = requests.Session()  # Reuse session for efficiency
             
-            # Download 2024 data
-            ncaa_url = "https://www.dropbox.com/scl/fi/54o93jhavlk1dlictfhup/statcast_2024.parquet?rlkey=4kud2iumjqb96sh4lb3girjdw&st=s42g33lc&dl=1"
-            response = requests.get(ncaa_url, timeout=300)
+            st.info("Downloading 2024 data from Google Drive...")
+            
+            # 🔽 REPLACE THESE FILE IDs WITH YOUR GOOGLE DRIVE FILE IDs 🔽
+            # To get file ID: Right-click file in Google Drive → Share → Copy link
+            # From: https://drive.google.com/file/d/1ABC123XYZ/view?usp=sharing
+            # Use: 1ABC123XYZ
+            
+            file_id_2024 = "1urUVq6d5fRemlFyPff8h2y6Yml5ka4XN"  # Replace with actual file ID
+            
+            response = self.download_from_gdrive(file_id_2024, session)
             response.raise_for_status()
             progress_bar.progress(30)
             
@@ -93,11 +120,11 @@ class DatabaseManager:
             progress_bar.progress(50)
             
             # Download 2025 data
-            st.info("Downloading 2025 MLB data from Dropbox...")
+            st.info("Downloading 2025 MLB data from Google Drive...")
             try:
-                ccbl_url = "https://www.dropbox.com/scl/fi/guwqimo1k39ivraj5widj/statcast_2025.parquet?rlkey=0afxm2kgtelcw1egs0owkumjx&st=e33wx95p&dl=1"
+                file_id_2025 = "1HNTzW8izUZCEqndb_rUslUdx6Q-0IHJQ"  # Replace with actual file ID
                 
-                ccbl_response = requests.get(ccbl_url, timeout=180)
+                ccbl_response = self.download_from_gdrive(file_id_2025, session)
                 ccbl_response.raise_for_status()
                 
                 ccbl_df = pd.read_parquet(BytesIO(ccbl_response.content))
@@ -105,7 +132,7 @@ class DatabaseManager:
                 df = pd.concat([ncaa_df, ccbl_df], ignore_index=True)
                 st.success(f"Combined dataset: {len(df):,} rows")
                 
-            except Exception as e:  # This except is now correctly placed
+            except Exception as e:
                 st.warning(f"Could not load 2025 data: {e}")
                 st.info("Using 2024 data only")
                 df = ncaa_df
@@ -150,9 +177,12 @@ class DatabaseManager:
             if 'ccbl_df' in locals():
                 del ccbl_df
             del df
+            session.close()  # Close the session
             
         except Exception as e:
             st.error(f"Error creating database: {e}")
+            if 'session' in locals():
+                session.close()
             raise
     
     def get_connection(self):
